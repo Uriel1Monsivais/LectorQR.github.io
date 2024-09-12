@@ -8,11 +8,13 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
+      padding: 20px;
     }
     #video {
       width: 100%;
       max-width: 400px;
       margin: 20px auto;
+      border: 1px solid black;
     }
     #qr-result {
       margin-top: 20px;
@@ -39,33 +41,38 @@
   <h1>Lector de Códigos QR</h1>
 
   <!-- Video donde se mostrará la cámara -->
-  <video id="video" autoplay></video>
+  <video id="video" autoplay playsinline></video>
 
   <!-- Campo de texto donde se mostrará el resultado del QR -->
   <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
+
+  <p id="error-message" style="color: red;"></p>
 
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
   <script>
     const video = document.getElementById('video');
     const qrResult = document.getElementById('qr-result');
+    const errorMessage = document.getElementById('error-message');
     let scanning = false;
 
     // Acceso a la cámara usando la API mediaDevices
     function startCamera() {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
         .then((stream) => {
           video.srcObject = stream;
-          video.setAttribute("playsinline", true); // Necesario para que funcione en iOS
+          video.setAttribute("playsinline", true); // Para evitar problemas en iOS
           scanning = true;
-          requestAnimationFrame(scanQRCode); // Llamamos a la función de escaneo
+          errorMessage.textContent = ''; // Limpiar mensajes de error si la cámara es accesible
+          requestAnimationFrame(scanQRCode); // Llamar la función para comenzar a escanear
         })
         .catch((err) => {
+          errorMessage.textContent = "Error al acceder a la cámara: " + err.message;
           console.error("Error al acceder a la cámara: ", err);
         });
     }
 
-    // Escanea el código QR desde el video
+    // Escanear el código QR desde el video
     function scanQRCode() {
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         const canvas = document.createElement("canvas");
