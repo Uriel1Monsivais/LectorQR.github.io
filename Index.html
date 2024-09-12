@@ -11,7 +11,8 @@
       text-align: center;
     }
     #qr-reader {
-      width: 300px;
+      width: 100%;
+      max-width: 400px;
       margin: 0 auto;
       display: none; /* Inicialmente oculto */
     }
@@ -74,17 +75,25 @@
       // Mostrar el lector de QR
       document.getElementById('qr-reader').style.display = 'block';
 
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Tu navegador no soporta acceso a la cámara.');
+        return;
+      }
+
       // Iniciar el lector de QR
       qrCodeScanner = new Html5Qrcode("qr-reader");
       qrCodeScanner.start(
         { facingMode: "environment" }, // Cámara trasera por defecto
         {
           fps: 10,    // 10 frames por segundo
-          qrbox: { width: 250, height: 250 }  // Tamaño de la caja de escaneo
+          qrbox: { width: 250, height: 250 }  // Tamaño de la caja de escaneo ajustable
         },
         onScanSuccess,  // Llamar esta función cuando se detecte un código QR
         onScanError     // Manejar errores de escaneo
-      );
+      ).catch(err => {
+        console.error("Error al acceder a la cámara: ", err);
+        alert("Error al acceder a la cámara. Verifica que los permisos estén habilitados.");
+      });
     }
   </script>
 
