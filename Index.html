@@ -83,7 +83,7 @@
       // Iniciar el lector de QR
       qrCodeScanner = new Html5Qrcode("qr-reader");
       qrCodeScanner.start(
-        { facingMode: "environment" }, // Cámara trasera por defecto
+        { facingMode: { exact: "environment" } }, // Cámara trasera forzada
         {
           fps: 10,    // 10 frames por segundo
           qrbox: { width: 250, height: 250 }  // Tamaño de la caja de escaneo ajustable
