@@ -88,6 +88,12 @@
           qrResult.value = qrCode.data; // Mostrar el resultado en el input
           scanning = false;
           video.srcObject.getTracks().forEach(track => track.stop()); // Detener la cámara
+
+          // Esperar 5 segundos y luego reiniciar la cámara
+          setTimeout(() => {
+            startCamera(); // Reiniciar la cámara después de 5 segundos
+          }, 5000);
+          return; // No continuar escaneando
         }
       }
 
