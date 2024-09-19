@@ -97,7 +97,6 @@
   <script src="https://apis.google.com/js/api.js"></script>
 
   <script>
-    // Configuración de la API de Google Identity Services (GIS)
     const CLIENT_ID = '146933011470-1f383sont25h5pkdfgmu7inp81l16350.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U';
     const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
@@ -107,7 +106,6 @@
     let gapiInited = false;
     let gisInited = false;
 
-    // Cargar la biblioteca de Google API
     function gapiLoaded() {
       gapi.load('client', initializeGapiClient);
     }
@@ -137,10 +135,8 @@
       }
     }
 
-    // Función para manejar el clic del botón de búsqueda
     document.getElementById('search-button').addEventListener('click', function() {
       if (gapi.client.getToken() === null) {
-        // Solicitar token de acceso
         tokenClient.callback = async (resp) => {
           if (resp.error !== undefined) {
             throw (resp);
@@ -153,7 +149,6 @@
       }
     });
 
-    // Función para buscar datos en Google Sheets
     async function fetchDataFromSheet() {
       const qrData = document.getElementById('qr-result').value;
       if (!qrData) {
@@ -164,7 +159,7 @@
       try {
         const response = await gapi.client.sheets.spreadsheets.values.get({
           spreadsheetId: '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs',
-          range: 'Herramientas!A:G', // Cambié el nombre de la hoja aquí
+          range: 'Herramientas!A:G',
         });
         const rows = response.result.values;
 
@@ -185,38 +180,31 @@
       }
     }
 
-    // Inicializar Google Identity Services
     function initializeGoogleSignIn() {
       google.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: handleCredentialResponse
       });
 
-      // Renderizar el botón de inicio de sesión en el lugar adecuado
       google.accounts.id.renderButton(
-        document.getElementById("google-signin-button"),  // Colocar el botón arriba
-        { theme: "outline", size: "large" }  // Opciones de estilo del botón
+        document.getElementById("google-signin-button"),
+        { theme: "outline", size: "large" }
       );
     }
 
-    // Función para manejar la respuesta de las credenciales
     function handleCredentialResponse(response) {
       console.log("Token ID de Google: " + response.credential);
-
-      // Aquí puedes manejar la autenticación y hacer las solicitudes necesarias a la API de Google Sheets.
-      // Después de la autenticación, puedes permitir la búsqueda en la hoja de cálculo
-      document.getElementById('search-button').disabled = false;  // Habilitar botón de búsqueda
+      document.getElementById('search-button').disabled = false;
     }
 
-    // Acceso a la cámara y el lector de QR
     function startCamera() {
       console.log('Intentando acceder a la cámara...');
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         .then((stream) => {
           console.log('Acceso a la cámara exitoso.');
           video.srcObject = stream;
-          video.setAttribute("playsinline", true); // Para evitar problemas en iOS
-          requestAnimationFrame(scanQRCode); // Comienza a escanear
+          video.setAttribute("playsinline", true);
+          requestAnimationFrame(scanQRCode);
         })
         .catch((err) => {
           console.error("Error al acceder a la cámara:", err);
@@ -224,7 +212,6 @@
         });
     }
 
-    // Escanear el código QR desde el video
     function scanQRCode() {
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         const canvas = document.createElement("canvas");
@@ -238,23 +225,22 @@
 
         if (qrCode) {
           console.log('Código QR escaneado:', qrCode.data);
-          document.getElementById('qr-result').value = qrCode.data;  // Mostrar el resultado en el input
-          video.srcObject.getTracks().forEach(track => track.stop());  // Detener la cámara
+          document.getElementById('qr-result').value = qrCode.data;
+          video.srcObject.getTracks().forEach(track => track.stop());
         } else {
-          requestAnimationFrame(scanQRCode);  // Continuar escaneando
+          requestAnimationFrame(scanQRCode);
         }
       } else {
-        requestAnimationFrame(scanQRCode);  // Si no está lista la cámara, vuelve a intentar
+        requestAnimationFrame(scanQRCode);
       }
     }
 
-    // Inicializar todo cuando se carga la página
     window.onload = function() {
-      initializeGoogleSignIn();  // Inicializar Google Identity Services
-      gapiLoaded();              // Cargar Google API
-      gisLoaded();               // Cargar Google Identity Services
-      startCamera();             // Iniciar la cámara y el lector QR
-      document.getElementById('search-button').disabled = true;  // Desactivar el botón hasta autenticarse
+      initializeGoogleSignIn();
+      gapiLoaded();
+      gisLoaded();
+      startCamera();
+      document.getElementById('search-button').disabled = true;
     };
   </script>
 
