@@ -123,8 +123,8 @@
         const data = await response.json();
         const rows = data.values;
 
-        // Encontrar la fila que coincida con el QR
-        const result = rows.find(row => row[0] === qrData); // Asumiendo que la primera columna es el ID
+        // Encontrar la fila que coincida con el QR en la columna "Id"
+        const result = rows.find(row => row[0] === qrData); // Asumiendo que la primera columna es "Id"
         if (result) {
           console.log('Datos encontrados:', result);
           alert('Datos encontrados: ' + result.join(', '));
