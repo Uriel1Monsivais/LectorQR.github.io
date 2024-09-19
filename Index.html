@@ -150,7 +150,7 @@
     async function fetchDataFromSheet(qrData) {
       try {
         const response = await gapi.client.sheets.spreadsheets.values.get({
-          spreadsheetId: '1Q54_stx-tvyd5l1Hzpqh7QxfiQR4vDPhkTbJ3LUuWO4',
+          spreadsheetId: '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs', // Nuevo spreadsheetId
           range: 'Sheet1'
         });
         const rows = response.result.values;
