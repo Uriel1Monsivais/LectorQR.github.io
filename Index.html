@@ -46,11 +46,11 @@
   <!-- Selección de trabajador -->
   <label for="worker-select">Seleccione un trabajador:</label>
   <select id="worker-select">
-    <option value="Trabajador 1">Manolo García</option>
-    <option value="Trabajador 2">Walter Bruce Willis</option>
-    <option value="Trabajador 3">Usher Raymond</option>
-    <option value="Trabajador 4">Kesha Sebert</option>
-    <option value="Trabajador 5">Shakira Mebarak</option>
+    <option value="Trabajador 1">Trabajador 1</option>
+    <option value="Trabajador 2">Trabajador 2</option>
+    <option value="Trabajador 3">Trabajador 3</option>
+    <option value="Trabajador 4">Trabajador 4</option>
+    <option value="Trabajador 5">Trabajador 5</option>
   </select>
 
   <!-- Campo de texto donde se mostrará el resultado del QR -->
@@ -123,8 +123,8 @@
         const data = await response.json();
         const rows = data.values;
 
-        // Encontrar la fila que coincida con el QR en la columna "Id"
-        const result = rows.find(row => row[0] === qrData); // Asumiendo que la primera columna es "Id"
+        // Encontrar la fila que coincida con el QR
+        const result = rows.find(row => row[0] === qrData); // Asumiendo que la primera columna es el ID
         if (result) {
           console.log('Datos encontrados:', result);
           alert('Datos encontrados: ' + result.join(', '));
