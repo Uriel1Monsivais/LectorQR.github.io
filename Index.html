@@ -79,7 +79,7 @@
   <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
 
   <!-- Botón de búsqueda en la hoja de cálculo -->
-  <button id="search-button">Buscar ID en Hoja de Cálculo</button>
+  <button id="search-button" disabled>Buscar ID en Hoja de Cálculo</button>
 
   <!-- Contenedor para mensajes -->
   <div id="message-box"></div>
@@ -105,6 +105,7 @@
     let tokenClient;
     let gapiInited = false;
     let gisInited = false;
+    let accessToken;
 
     function gapiLoaded() {
       gapi.load('client', initializeGapiClient);
@@ -123,7 +124,16 @@
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
-        callback: '', // definido más adelante
+        callback: (resp) => {
+          if (resp.error !== undefined) {
+            console.error(resp);
+            return;
+          }
+          // Guardar el token de acceso
+          accessToken = gapi.client.getToken();
+          console.log('Token recibido: ', accessToken);
+          document.getElementById('search-button').disabled = false;  // Habilitar botón de búsqueda
+        },
       });
       gisInited = true;
       maybeEnableButtons();
@@ -136,15 +146,12 @@
     }
 
     document.getElementById('search-button').addEventListener('click', function() {
-      if (gapi.client.getToken() === null) {
-        tokenClient.callback = async (resp) => {
-          if (resp.error !== undefined) {
-            throw (resp);
-          }
-          await fetchDataFromSheet();
-        };
-        tokenClient.requestAccessToken({prompt: 'consent'});
+      // Verificar si ya existe un token de acceso
+      if (!accessToken) {
+        // Solicitar token de acceso si no existe
+        tokenClient.requestAccessToken({prompt: ''});
       } else {
+        // Token ya existente, proceder a buscar datos
         fetchDataFromSheet();
       }
     });
@@ -177,6 +184,8 @@
         }
       } catch (err) {
         console.error('Error al obtener datos de Google Sheets:', err);
+        // Mostrar alerta de error
+        alert('No se pudo acceder a la hoja de cálculo. Por favor, inténtalo de nuevo.');
       }
     }
 
@@ -194,7 +203,7 @@
 
     function handleCredentialResponse(response) {
       console.log("Token ID de Google: " + response.credential);
-      document.getElementById('search-button').disabled = false;
+      tokenClient.requestAccessToken({prompt: ''});
     }
 
     function startCamera() {
