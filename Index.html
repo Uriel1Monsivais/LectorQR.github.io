@@ -34,6 +34,11 @@
     #start-button:hover {
       background-color: #45a049;
     }
+    #message-box {
+      display: none;
+      margin-top: 20px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
@@ -58,6 +63,9 @@
 
   <!-- Botón de búsqueda -->
   <button id="search-button">Buscar</button>
+
+  <!-- Contenedor para mensajes -->
+  <div id="message-box"></div>
 
   <p id="error-message" style="color: red;"></p>
 
@@ -154,14 +162,19 @@
           range: 'Sheet1'
         });
         const rows = response.result.values;
+        const messageBox = document.getElementById('message-box');
 
         // Encontrar la fila que coincida con el QR en la columna "Id"
         const result = rows.find(row => row[0] === qrData); // Asumiendo que la primera columna es "Id"
         if (result) {
           console.log('Datos encontrados:', result);
-          alert('Datos encontrados: ' + result.join(', '));
+          messageBox.textContent = 'Datos subidos exitosamente: ' + result.join(', ');
+          messageBox.style.color = 'green';
+          messageBox.style.display = 'block'; // Mostrar el cuadro de texto
         } else {
-          alert('No se encontraron datos para el código QR escaneado.');
+          messageBox.textContent = 'No se encontraron datos para el código QR escaneado.';
+          messageBox.style.color = 'red';
+          messageBox.style.display = 'block'; // Mostrar el cuadro de texto
         }
       } catch (error) {
         console.error('Error al obtener datos de Google Sheets:', error);
