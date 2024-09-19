@@ -164,7 +164,7 @@
       try {
         const response = await gapi.client.sheets.spreadsheets.values.get({
           spreadsheetId: '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs',
-          range: 'Herraminetas1!A:G',
+          range: 'Herramientas!A:G', // Cambié el nombre de la hoja aquí
         });
         const rows = response.result.values;
 
