@@ -181,7 +181,13 @@
 
         if (result) {
           console.log('Datos encontrados:', result);
-          showMessage('Datos subidos exitosamente: ' + result.join(', '), 'success');
+          showMessage(`ID encontrado: ${result[0]}<br>
+                       Nombre: ${result[1]}<br>
+                       Color: ${result[2]}<br>
+                       Marca: ${result[3]}<br>
+                       Número de herramienta: ${result[4]}<br>
+                       Proceso: ${result[5]}<br>
+                       Material: ${result[6]}`, 'success');
         } else {
           showMessage('No se encontraron datos para el código QR escaneado.', 'error');
         }
