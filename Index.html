@@ -1,188 +1,101 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lector de Códigos QR con Google Identity Services</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    #video {
-      width: 100%;
-      max-width: 400px;
-      margin: 20px auto;
-      border: 1px solid black;
-    }
-    #qr-result {
-      margin-top: 20px;
-      font-size: 18px;
-      color: green;
-      width: 80%;
-      padding: 10px;
-    }
-    #search-button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    #search-button:hover {
-      background-color: #45a049;
-    }
-    #message-box {
-      display: none;
-      margin-top: 20px;
-      font-size: 18px;
-    }
-    #message-box.success {
-      color: green;
-    }
-    #message-box.error {
-      color: red;
-    }
-    #error-message {
-      color: red;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
+<!-- Agrega este script adicional para cargar la API de Google -->
+<script src="https://apis.google.com/js/api.js"></script>
 
-  <h1>Lector de Códigos QR</h1>
+<script>
+  // Configuración de la API de Google Identity Services (GIS)
+  const CLIENT_ID = 'YOUR_CLIENT_ID';
+  const API_KEY = 'YOUR_API_KEY';
+  const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+  const DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
 
-  <!-- Botón de inicio de sesión de Google en la parte superior -->
-  <div id="google-signin-button" style="margin-bottom: 20px;"></div>
+  let tokenClient;
+  let gapiInited = false;
+  let gisInited = false;
 
-  <!-- Video donde se mostrará la cámara -->
-  <video id="video" autoplay playsinline></video>
+  // Cargar la biblioteca de Google API
+  function gapiLoaded() {
+    gapi.load('client', initializeGapiClient);
+  }
 
-  <!-- Selección de trabajador -->
-  <div>
-    <label for="worker-select">Seleccione un trabajador:</label>
-    <select id="worker-select">
-      <option value="Trabajador 1">Manolo García</option>
-      <option value="Trabajador 2">Walter Bruce Willis</option>
-      <option value="Trabajador 3">Usher Raymond</option>
-      <option value="Trabajador 4">Kesha Sebert</option>
-      <option value="Trabajador 5">Shakira Mebarak</option>
-    </select>
-  </div>
-
-  <!-- Campo de texto donde se mostrará el resultado del QR -->
-  <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
-
-  <!-- Botón de búsqueda en la hoja de cálculo -->
-  <button id="search-button">Buscar ID en Hoja de Cálculo</button>
-
-  <!-- Contenedor para mensajes -->
-  <div id="message-box"></div>
-
-  <!-- Mensaje de error -->
-  <p id="error-message"></p>
-
-  <!-- Incluir la nueva biblioteca de Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  
-  <!-- Lector de códigos QR -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
-
-  <script>
-    // Configuración de la API de Google Identity Services (GIS)
-    const CLIENT_ID = '146933011470-1f383sont25h5pkdfgmu7inp81l16350.apps.googleusercontent.com';
-
-    // Inicializar Google Identity Services
-    function initializeGoogleSignIn() {
-      google.accounts.id.initialize({
-        client_id: CLIENT_ID,
-        callback: handleCredentialResponse
-      });
-
-      // Renderizar el botón de inicio de sesión en el lugar adecuado
-      google.accounts.id.renderButton(
-        document.getElementById("google-signin-button"),  // Colocar el botón arriba
-        { theme: "outline", size: "large" }  // Opciones de estilo del botón
-      );
-    }
-
-    // Función para manejar la respuesta de las credenciales
-    function handleCredentialResponse(response) {
-      console.log("Token ID de Google: " + response.credential);
-
-      // Aquí puedes manejar la autenticación y hacer las solicitudes necesarias a la API de Google Sheets.
-      // Después de la autenticación, puedes permitir la búsqueda en la hoja de cálculo
-      document.getElementById('search-button').disabled = false;  // Habilitar botón de búsqueda
-    }
-
-    // Aquí iría tu código para buscar los datos en Google Sheets
-    function fetchDataFromSheet() {
-      // Reemplaza este código con la lógica para buscar en Google Sheets
-      console.log("Aquí iría la búsqueda de datos en Google Sheets");
-    }
-
-    // Función para manejar el clic del botón de búsqueda
-    document.getElementById('search-button').addEventListener('click', function() {
-      const qrData = document.getElementById('qr-result').value;
-      if (qrData) {
-        fetchDataFromSheet(qrData);  // Pasa el ID escaneado a la función de búsqueda
-      } else {
-        alert('Primero debes escanear un código QR.');
-      }
+  async function initializeGapiClient() {
+    await gapi.client.init({
+      apiKey: API_KEY,
+      discoveryDocs: [DISCOVERY_DOC],
     });
+    gapiInited = true;
+    maybeEnableButtons();
+  }
 
-    // Acceso a la cámara y el lector de QR
-    function startCamera() {
-      console.log('Intentando acceder a la cámara...');
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
-          console.log('Acceso a la cámara exitoso.');
-          video.srcObject = stream;
-          video.setAttribute("playsinline", true); // Para evitar problemas en iOS
-          requestAnimationFrame(scanQRCode); // Comienza a escanear
-        })
-        .catch((err) => {
-          console.error("Error al acceder a la cámara:", err);
-          errorMessage.textContent = "Error al acceder a la cámara: " + err.message;
-        });
+  function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: '', // definido más adelante
+    });
+    gisInited = true;
+    maybeEnableButtons();
+  }
+
+  function maybeEnableButtons() {
+    if (gapiInited && gisInited) {
+      document.getElementById('search-button').disabled = false;
     }
+  }
 
-    // Escanear el código QR desde el video
-    function scanQRCode() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-
-        if (qrCode) {
-          console.log('Código QR escaneado:', qrCode.data);
-          document.getElementById('qr-result').value = qrCode.data;  // Mostrar el resultado en el input
-          video.srcObject.getTracks().forEach(track => track.stop());  // Detener la cámara
-        } else {
-          requestAnimationFrame(scanQRCode);  // Continuar escaneando
+  // Función para manejar el clic del botón de búsqueda
+  document.getElementById('search-button').addEventListener('click', function() {
+    if (gapi.client.getToken() === null) {
+      // Solicitar token de acceso
+      tokenClient.callback = async (resp) => {
+        if (resp.error !== undefined) {
+          throw (resp);
         }
-      } else {
-        requestAnimationFrame(scanQRCode);  // Si no está lista la cámara, vuelve a intentar
-      }
+        await fetchDataFromSheet();
+      };
+      tokenClient.requestAccessToken({prompt: 'consent'});
+    } else {
+      fetchDataFromSheet();
+    }
+  });
+
+  // Función para buscar datos en Google Sheets
+  async function fetchDataFromSheet() {
+    const qrData = document.getElementById('qr-result').value;
+    if (!qrData) {
+      alert('Primero debes escanear un código QR.');
+      return;
     }
 
-    // Inicializar todo cuando se carga la página
-    window.onload = function() {
-      initializeGoogleSignIn();  // Inicializar Google Identity Services
-      startCamera();  // Iniciar la cámara y el lector QR
-      document.getElementById('search-button').disabled = true;  // Desactivar el botón hasta autenticarse
-    };
-  </script>
+    try {
+      const response = await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: 'YOUR_SPREADSHEET_ID',
+        range: 'Sheet1!A:G',
+      });
+      const rows = response.result.values;
 
-</body>
-</html>
+      if (!rows || rows.length === 0) {
+        alert('No se encontraron datos en la hoja de cálculo.');
+        return;
+      }
+
+      const result = rows.find(row => row[0] === qrData);
+
+      if (result) {
+        alert(`Datos encontrados:\nID: ${result[0]}\nNombre: ${result[1]}`);
+      } else {
+        alert('No se encontraron datos para el código QR escaneado.');
+      }
+    } catch (err) {
+      console.error('Error al obtener datos de Google Sheets:', err);
+    }
+  }
+
+  // Inicializar todo cuando se carga la página
+  window.onload = function() {
+    // Cargar las bibliotecas de Google API y GIS
+    gapiLoaded();
+    gisLoaded();
+    startCamera();
+    document.getElementById('search-button').disabled = true; // Desactivar hasta que GIS esté listo
+  };
+</script>
