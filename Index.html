@@ -57,6 +57,9 @@
 
   <h1>Lector de Códigos QR</h1>
 
+  <!-- Botón de inicio de sesión de Google en la parte superior -->
+  <div id="google-signin-button" style="margin-bottom: 20px;"></div>
+
   <!-- Video donde se mostrará la cámara -->
   <video id="video" autoplay playsinline></video>
 
@@ -75,8 +78,8 @@
   <!-- Campo de texto donde se mostrará el resultado del QR -->
   <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
 
-  <!-- Botón de búsqueda -->
-  <button id="search-button">Buscar</button>
+  <!-- Botón de búsqueda en la hoja de cálculo -->
+  <button id="search-button">Buscar ID en Hoja de Cálculo</button>
 
   <!-- Contenedor para mensajes -->
   <div id="message-box"></div>
@@ -103,7 +106,7 @@
 
       // Renderizar el botón de inicio de sesión en el lugar adecuado
       google.accounts.id.renderButton(
-        document.getElementById("search-button"),  // Elemento donde se mostrará el botón
+        document.getElementById("google-signin-button"),  // Colocar el botón arriba
         { theme: "outline", size: "large" }  // Opciones de estilo del botón
       );
     }
@@ -113,8 +116,8 @@
       console.log("Token ID de Google: " + response.credential);
 
       // Aquí puedes manejar la autenticación y hacer las solicitudes necesarias a la API de Google Sheets.
-      // Después de la autenticación, llama a la función para buscar los datos en Google Sheets.
-      fetchDataFromSheet();
+      // Después de la autenticación, puedes permitir la búsqueda en la hoja de cálculo
+      document.getElementById('search-button').disabled = false;  // Habilitar botón de búsqueda
     }
 
     // Aquí iría tu código para buscar los datos en Google Sheets
@@ -123,9 +126,61 @@
       console.log("Aquí iría la búsqueda de datos en Google Sheets");
     }
 
-    // Iniciar la cámara y la autenticación de Google cuando se carga la página
+    // Función para manejar el clic del botón de búsqueda
+    document.getElementById('search-button').addEventListener('click', function() {
+      const qrData = document.getElementById('qr-result').value;
+      if (qrData) {
+        fetchDataFromSheet(qrData);  // Pasa el ID escaneado a la función de búsqueda
+      } else {
+        alert('Primero debes escanear un código QR.');
+      }
+    });
+
+    // Acceso a la cámara y el lector de QR
+    function startCamera() {
+      console.log('Intentando acceder a la cámara...');
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then((stream) => {
+          console.log('Acceso a la cámara exitoso.');
+          video.srcObject = stream;
+          video.setAttribute("playsinline", true); // Para evitar problemas en iOS
+          requestAnimationFrame(scanQRCode); // Comienza a escanear
+        })
+        .catch((err) => {
+          console.error("Error al acceder a la cámara:", err);
+          errorMessage.textContent = "Error al acceder a la cámara: " + err.message;
+        });
+    }
+
+    // Escanear el código QR desde el video
+    function scanQRCode() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (qrCode) {
+          console.log('Código QR escaneado:', qrCode.data);
+          document.getElementById('qr-result').value = qrCode.data;  // Mostrar el resultado en el input
+          video.srcObject.getTracks().forEach(track => track.stop());  // Detener la cámara
+        } else {
+          requestAnimationFrame(scanQRCode);  // Continuar escaneando
+        }
+      } else {
+        requestAnimationFrame(scanQRCode);  // Si no está lista la cámara, vuelve a intentar
+      }
+    }
+
+    // Inicializar todo cuando se carga la página
     window.onload = function() {
-      initializeGoogleSignIn();
+      initializeGoogleSignIn();  // Inicializar Google Identity Services
+      startCamera();  // Iniciar la cámara y el lector QR
+      document.getElementById('search-button').disabled = true;  // Desactivar el botón hasta autenticarse
     };
   </script>
 
