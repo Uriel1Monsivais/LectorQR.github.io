@@ -43,8 +43,21 @@
   <!-- Video donde se mostrará la cámara -->
   <video id="video" autoplay playsinline></video>
 
+  <!-- Selección de trabajador -->
+  <label for="worker-select">Seleccione un trabajador:</label>
+  <select id="worker-select">
+    <option value="Trabajador 1">Manolo García</option>
+    <option value="Trabajador 2">Walter Bruce Willis</option>
+    <option value="Trabajador 3">Usher Raymond</option>
+    <option value="Trabajador 4">Kesha Sebert</option>
+    <option value="Trabajador 5">Shakira Mebarak</option>
+  </select>
+
   <!-- Campo de texto donde se mostrará el resultado del QR -->
   <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
+
+  <!-- Botón de búsqueda -->
+  <button id="search-button">Buscar</button>
 
   <p id="error-message" style="color: red;"></p>
 
@@ -54,6 +67,7 @@
     const video = document.getElementById('video');
     const qrResult = document.getElementById('qr-result');
     const errorMessage = document.getElementById('error-message');
+    const searchButton = document.getElementById('search-button');
     let scanning = false;
 
     // Acceso a la cámara usando la API mediaDevices
@@ -101,6 +115,37 @@
         requestAnimationFrame(scanQRCode); // Continuar escaneando si no se ha encontrado un QR
       }
     }
+
+    // Función para buscar datos en Google Sheets
+    async function fetchDataFromSheet(qrData) {
+      try {
+        const response = await fetch('https://sheets.googleapis.com/v4/spreadsheets/1Q54_stx-tvyd5l1Hzpqh7QxfiQR4vDPhkTbJ3LUuWO4/values/Sheet1?key=YOUR_API_KEY');
+        const data = await response.json();
+        const rows = data.values;
+
+        // Encontrar la fila que coincida con el QR
+        const result = rows.find(row => row[0] === qrData); // Asumiendo que la primera columna es el ID
+        if (result) {
+          console.log('Datos encontrados:', result);
+          alert('Datos encontrados: ' + result.join(', '));
+        } else {
+          alert('No se encontraron datos para el código QR escaneado.');
+        }
+      } catch (error) {
+        console.error('Error al obtener datos de Google Sheets:', error);
+        alert('Error al obtener datos de Google Sheets.');
+      }
+    }
+
+    // Evento al presionar el botón de búsqueda
+    searchButton.addEventListener('click', () => {
+      const qrData = qrResult.value;
+      if (qrData) {
+        fetchDataFromSheet(qrData);
+      } else {
+        alert('No se ha escaneado ningún código QR.');
+      }
+    });
 
     // Iniciar la cámara cuando se carga la página
     window.addEventListener('load', startCamera);
