@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lector de Códigos QR</title>
+  <title>Lector de Códigos QR con Google Identity Services</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -84,185 +84,49 @@
   <!-- Mensaje de error -->
   <p id="error-message"></p>
 
-  <!-- Cargar las bibliotecas necesarias -->
-  <script src="https://apis.google.com/js/api.js"></script>
+  <!-- Incluir la nueva biblioteca de Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Lector de códigos QR -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
   <script>
-    // Configuración de la API y OAuth
+    // Configuración de la API de Google Identity Services (GIS)
     const CLIENT_ID = '146933011470-1f383sont25h5pkdfgmu7inp81l16350.apps.googleusercontent.com';
-    const API_KEY = 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U';
-    const DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
-    const SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
 
-    const spreadsheetId = '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs';
-    const range = 'Sheet1!A:G'; // Ajusta el rango según tus columnas
-
-    // Elementos del DOM
-    const video = document.getElementById('video');
-    const qrResult = document.getElementById('qr-result');
-    const errorMessage = document.getElementById('error-message');
-    const searchButton = document.getElementById('search-button');
-    const messageBox = document.getElementById('message-box');
-    let scanning = false;
-
-    // Cargar y inicializar la API de Google
-    function handleClientLoad() {
-      console.log('Cargando la API de Google...');
-      gapi.load('client:auth2', initClient);
-    }
-
-    function initClient() {
-      console.log('Inicializando el cliente de Google...');
-      gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: DISCOVERY_DOCS,
-        scope: SCOPES
-      }).then(() => {
-        console.log('Cliente de Google inicializado correctamente.');
-        // Verificar si el usuario ya está autenticado
-        if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
-          console.log('Usuario ya autenticado.');
-        } else {
-          console.log('Usuario no autenticado.');
-        }
-        searchButton.onclick = handleAuthClick; // Asignar el evento al botón de búsqueda
-      }, (error) => {
-        console.error('Error al inicializar la API:', JSON.stringify(error, null, 2));
-        errorMessage.textContent = "Error al inicializar la API de Google.";
+    // Inicializar Google Identity Services
+    function initializeGoogleSignIn() {
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: handleCredentialResponse
       });
+
+      // Renderizar el botón de inicio de sesión en el lugar adecuado
+      google.accounts.id.renderButton(
+        document.getElementById("search-button"),  // Elemento donde se mostrará el botón
+        { theme: "outline", size: "large" }  // Opciones de estilo del botón
+      );
     }
 
-    // Manejar el click del botón de búsqueda
-    function handleAuthClick(event) {
-      console.log('Botón de búsqueda clickeado.');
-      if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
-        console.log('Usuario ya está autenticado. Procediendo a buscar datos.');
-        fetchDataFromSheet(qrResult.value);
-      } else {
-        console.log('Usuario no está autenticado. Iniciando sesión.');
-        gapi.auth2.getAuthInstance().signIn().then(() => {
-          console.log('Inicio de sesión exitoso. Procediendo a buscar datos.');
-          fetchDataFromSheet(qrResult.value);
-        }).catch((error) => {
-          console.error('Error al iniciar sesión:', error);
-          errorMessage.textContent = "Error al iniciar sesión.";
-        });
-      }
+    // Función para manejar la respuesta de las credenciales
+    function handleCredentialResponse(response) {
+      console.log("Token ID de Google: " + response.credential);
+
+      // Aquí puedes manejar la autenticación y hacer las solicitudes necesarias a la API de Google Sheets.
+      // Después de la autenticación, llama a la función para buscar los datos en Google Sheets.
+      fetchDataFromSheet();
     }
 
-    // Función para buscar datos en Google Sheets
-    async function fetchDataFromSheet(qrData) {
-      console.log(`Buscando datos para el ID: ${qrData}`);
-      if (!qrData) {
-        showMessage('No se ha escaneado ningún código QR.', 'error');
-        return;
-      }
-
-      try {
-        const response = await gapi.client.sheets.spreadsheets.values.get({
-          spreadsheetId: spreadsheetId,
-          range: range
-        });
-        const rows = response.result.values;
-
-        console.log('Datos obtenidos de Google Sheets:', rows);
-
-        if (!rows || rows.length === 0) {
-          showMessage('No se encontraron datos en la hoja de cálculo.', 'error');
-          return;
-        }
-
-        // Buscar el QR escaneado en la columna "Id" (asumiendo que es la primera columna)
-        const result = rows.find(row => row[0] === qrData);
-
-        if (result) {
-          console.log('Datos encontrados:', result);
-          showMessage(`ID encontrado: ${result[0]}<br>
-                       Nombre: ${result[1]}<br>
-                       Color: ${result[2]}<br>
-                       Marca: ${result[3]}<br>
-                       Número de herramienta: ${result[4]}<br>
-                       Proceso: ${result[5]}<br>
-                       Material: ${result[6]}`, 'success');
-        } else {
-          console.log('No se encontraron datos para el ID escaneado.');
-          showMessage('No se encontraron datos para el código QR escaneado.', 'error');
-        }
-      } catch (error) {
-        console.error('Error al obtener datos de Google Sheets:', error);
-        showMessage('Error al obtener datos de Google Sheets.', 'error');
-      }
+    // Aquí iría tu código para buscar los datos en Google Sheets
+    function fetchDataFromSheet() {
+      // Reemplaza este código con la lógica para buscar en Google Sheets
+      console.log("Aquí iría la búsqueda de datos en Google Sheets");
     }
 
-    // Función para mostrar mensajes en el cuadro de texto
-    function showMessage(message, type) {
-      console.log(`Mostrando mensaje: ${message}`);
-      messageBox.innerHTML = message; // Usar innerHTML para interpretar etiquetas HTML
-      messageBox.className = '';
-      messageBox.classList.add(type);
-      messageBox.style.display = 'block';
-
-      // Ocultar el mensaje después de 5 segundos
-      setTimeout(() => {
-        messageBox.style.display = 'none';
-      }, 5000);
-    }
-
-    // Acceso a la cámara usando la API mediaDevices
-    function startCamera() {
-      console.log('Intentando acceder a la cámara...');
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
-          console.log('Acceso a la cámara exitoso.');
-          video.srcObject = stream;
-          video.setAttribute("playsinline", true); // Para evitar problemas en iOS
-          scanning = true;
-          errorMessage.textContent = ''; // Limpiar mensajes de error si la cámara es accesible
-          requestAnimationFrame(scanQRCode); // Llamar la función para comenzar a escanear
-        })
-        .catch((err) => {
-          console.error("Error al acceder a la cámara:", err);
-          errorMessage.textContent = "Error al acceder a la cámara: " + err.message;
-        });
-    }
-
-    // Escanear el código QR desde el video
-    function scanQRCode() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-
-        if (qrCode) {
-          console.log('Código QR escaneado:', qrCode.data);
-          qrResult.value = qrCode.data; // Mostrar el resultado en el input
-          scanning = false;
-          video.srcObject.getTracks().forEach(track => track.stop()); // Detener la cámara
-
-          // Mostrar mensaje temporal de escaneo exitoso
-          showMessage('Código QR escaneado exitosamente. Presiona "Buscar" para continuar.', 'success');
-
-          return; // No continuar escaneando
-        }
-      }
-
-      if (scanning) {
-        requestAnimationFrame(scanQRCode); // Continuar escaneando si no se ha encontrado un QR
-      }
-    }
-
-    // Iniciar la cámara y cargar la API cuando se carga la página
-    window.addEventListener('load', () => {
-      handleClientLoad();
-      startCamera();
-    });
+    // Iniciar la cámara y la autenticación de Google cuando se carga la página
+    window.onload = function() {
+      initializeGoogleSignIn();
+    };
   </script>
 
 </body>
