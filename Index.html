@@ -96,15 +96,10 @@
         discoveryDocs: DISCOVERY_DOCS,
         scope: SCOPES
       }).then(() => {
-        searchButton.onclick = handleAuthClick;
+        // Ahora el botón llama a fetchDataFromSheet directamente, ya que la autenticación se maneja al cargar la página.
+        searchButton.onclick = () => fetchDataFromSheet(qrResult.value);
       }, (error) => {
         console.error(JSON.stringify(error, null, 2));
-      });
-    }
-
-    function handleAuthClick(event) {
-      gapi.auth2.getAuthInstance().signIn().then(() => {
-        fetchDataFromSheet(qrResult.value);
       });
     }
 
