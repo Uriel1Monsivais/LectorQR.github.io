@@ -166,7 +166,7 @@
       try {
         const response = await gapi.client.sheets.spreadsheets.values.get({
           spreadsheetId: '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs',
-          range: 'Herramientas!A:G',
+          range: 'Herramientas!A:G', // Rango que incluye todas las columnas
         });
         const rows = response.result.values;
 
@@ -175,10 +175,11 @@
           return;
         }
 
+        // Buscar el QR en la columna ID
         const result = rows.find(row => row[0] === qrData);
 
         if (result) {
-          alert(`Datos encontrados:\nID: ${result[0]}\nNombre: ${result[1]}\nColor: ${result[2]}\nMarca: ${result[3]}\nNúmero de herramienta: ${result[4]}`);
+          alert(`Datos encontrados:\nID: ${result[0]}\nNombre: ${result[1]}\nColor: ${result[2]}\nMarca: ${result[3]}\nNúmero de herramienta: ${result[4]}\nProceso: ${result[5]}\nMaterial: ${result[6]}`);
         } else {
           alert('No se encontraron datos para el código QR escaneado.');
         }
