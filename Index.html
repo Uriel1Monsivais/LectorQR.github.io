@@ -129,8 +129,12 @@
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 });
 
-          // Buscar el dato del QR en la primera columna (Id)
-          const result = worksheet.find(row => row[0] === qrData);
+          // Convertir qrData a cadena de texto
+          const qrText = String(qrData).trim();
+
+          // Buscar el dato del QR en la primera columna (Id), asegurando que ambos son texto
+          const result = worksheet.find(row => String(row[0]).trim() === qrText);
+          
           if (result) {
             // Muestra los datos encontrados, suponiendo que son: Id, Nombre, Color, Marca, Número de herramienta, Proceso, Material
             alert('Datos encontrados:\n' +
