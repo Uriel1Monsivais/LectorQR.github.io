@@ -126,7 +126,7 @@
           // Fetch the data from the "Herramientas" sheet
           response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs',
-            range: 'Herramientas!A2:E', // Adjust this range according to your sheet structure
+            range: 'Herramientas!A2:G', // Adjust this range according to your sheet structure
           });
         } catch (err) {
           document.getElementById('content').innerText = err.message;
