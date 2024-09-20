@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lector de Códigos QR -</title>
+  <title>Lector de Códigos QR</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -34,6 +34,19 @@
     #start-button:hover {
       background-color: #45a049;
     }
+    #report-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #report-button:hover {
+      background-color: #0b7dda;
+    }
   </style>
 </head>
 <body>
@@ -58,9 +71,13 @@
 
   <!-- Botón de búsqueda -->
   <button id="search-button">Buscar</button>
+  
+  <!-- Botón para descargar el reporte -->
+  <button id="report-button">Reporte</button>
 
   <p id="error-message" style="color: red;"></p>
 
+  <!-- Incluir la librería xlsx.js para leer y escribir archivos Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
@@ -69,7 +86,9 @@
     const qrResult = document.getElementById('qr-result');
     const workerSelect = document.getElementById('worker-select');
     const searchButton = document.getElementById('search-button');
+    const reportButton = document.getElementById('report-button');
     let scanning = false;
+    let registros = []; // Para almacenar los registros temporalmente
 
     // Acceso a la cámara usando la API mediaDevices
     function startCamera() {
@@ -115,8 +134,8 @@
       }
     }
 
-    // Función para enviar los datos al servidor y guardar en el Excel de GitHub
-    function sendDataToServer(qrData, workerName) {
+    // Función para buscar datos en el Excel y registrar temporalmente en el array
+    function fetchDataAndLog(qrData, workerName) {
       fetch('Herramientas.xlsx')
         .then(response => response.arrayBuffer())
         .then(data => {
@@ -135,22 +154,9 @@
               Nombre_Del_Trabajador: workerName
             };
 
-            // Enviar el registro al servidor para que lo suba a GitHub
-            fetch('http://localhost:3000/agregarRegistro', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(registro)
-            })
-            .then(response => response.json())
-            .then(data => {
-              alert(data.message);
-            })
-            .catch(error => {
-              console.error('Error al enviar los datos al servidor:', error);
-              alert('Error al agregar el registro');
-            });
+            // Agregar el registro al array en memoria
+            registros.push(registro);
+            alert('Registro guardado temporalmente.');
           } else {
             alert('No se encontraron datos para el código QR escaneado.');
           }
@@ -161,16 +167,54 @@
         });
     }
 
+    // Función para descargar el archivo de registros cuando se haga clic en "Reporte"
+    function downloadReport() {
+      if (registros.length === 0) {
+        alert("No hay registros para generar un reporte.");
+        return;
+      }
+
+      // Crear un nuevo workbook y una hoja para el reporte
+      const wb = XLSX.utils.book_new();
+      const wsData = [["Id_Maquina", "Nombre_de_la_Maquina", "Fecha_y_horas", "Nombre_Del_Trabajador"]];
+      
+      // Añadir cada registro a la hoja
+      registros.forEach(registro => {
+        wsData.push([registro.Id_Maquina, registro.Nombre_de_la_Maquina, registro.Fecha_y_horas, registro.Nombre_Del_Trabajador]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, "Registros");
+
+      // Exportar el archivo
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+      // Descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Registros.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      alert("Reporte descargado.");
+    }
+
     // Evento al presionar el botón de búsqueda
     searchButton.addEventListener('click', () => {
       const qrData = qrResult.value;
       const workerName = workerSelect.value;
       if (qrData) {
-        sendDataToServer(qrData, workerName);
+        fetchDataAndLog(qrData, workerName);
       } else {
         alert('No se ha escaneado ningún código QR.');
       }
     });
+
+    // Evento al presionar el botón de reporte
+    reportButton.addEventListener('click', downloadReport);
 
     // Iniciar la cámara cuando se carga la página
     window.addEventListener('load', startCamera);
