@@ -120,7 +120,64 @@
             // Aquí podrías cargar los archivos Excel automáticamente si es necesario
         });
 
-        // Más funciones como antes...
+         // Inicializar el lector de QR
+        function iniciarQR() {
+            const qrCodeSuccessCallback = (decodedText) => {
+                document.getElementById('id-qr').value = decodedText;
+                console.log(`Código QR leído: ${decodedText}`);
+            };
+
+            const html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, // Usar la cámara trasera del dispositivo
+                {
+                    fps: 10,    // Cuadros por segundo
+                    qrbox: 250  // Tamaño del área del QR
+                },
+                qrCodeSuccessCallback
+            ).catch((err) => {
+                console.log(`Error al iniciar el escaneo de QR: ${err}`);
+            });
+        }
+
+        // Manejar el botón "Buscar ID y Registrar"
+        document.getElementById('buscar-btn').addEventListener('click', function(){
+            const id = document.getElementById('id-qr').value;
+
+            if(id === ''){
+                alert('Por favor, escanea un ID.');
+                return;
+            }
+
+            // Validar si el ID existe en herramientasData
+            const trabajador = herramientasData.find(t => String(t.Id) === String(id));
+            if(!trabajador){
+                alert('ID no encontrado en Herramientas.xlsx.');
+                return;
+            }
+
+            // Crear nuevo registro
+            const ahora = new Date();
+            const nuevoRegistro = {
+                ID: id,
+                Fecha: ahora.toISOString().split('T')[0],
+                Hora: ahora.toTimeString().split(' ')[0],
+                Máquina: "N/A"  // El campo de máquina es opcional, se puede ajustar según sea necesario
+            };
+
+            registrosData.push(nuevoRegistro);
+            alert('Registro exitoso.');
+
+            // Limpiar campos
+            document.getElementById('id-qr').value = '';
+        });
+
+        // Iniciar la carga de archivos cuando la página esté lista
+        window.addEventListener('load', cargarArchivos);
+
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>
