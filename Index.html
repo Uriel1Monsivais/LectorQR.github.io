@@ -118,7 +118,7 @@
       }
     }
 
-    // Función para cargar el archivo Excel de forma automática y buscar los datos
+    // Función para cargar el archivo Excel y buscar el dato en la columna Id
     function fetchDataFromExcel(qrData) {
       fetch('Herramientas.xlsx')
         .then(response => response.arrayBuffer())
@@ -129,10 +129,18 @@
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 });
 
-          // Buscar el dato del QR en la primera columna del Excel
+          // Buscar el dato del QR en la primera columna (Id)
           const result = worksheet.find(row => row[0] === qrData);
           if (result) {
-            alert('Datos encontrados: ' + result.join(', '));
+            // Muestra los datos encontrados, suponiendo que son: Id, Nombre, Color, Marca, Número de herramienta, Proceso, Material
+            alert('Datos encontrados:\n' +
+                  'Id: ' + result[0] + '\n' +
+                  'Nombre: ' + result[1] + '\n' +
+                  'Color: ' + result[2] + '\n' +
+                  'Marca: ' + result[3] + '\n' +
+                  'Número de herramienta: ' + result[4] + '\n' +
+                  'Proceso: ' + result[5] + '\n' +
+                  'Material: ' + result[6]);
           } else {
             alert('No se encontraron datos para el código QR escaneado.');
           }
