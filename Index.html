@@ -1,190 +1,150 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lector de Códigos QR con Excel</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    #video {
-      width: 100%;
-      max-width: 400px;
-      margin: 20px auto;
-      border: 1px solid black;
-    }
-    #qr-result {
-      margin-top: 20px;
-      font-size: 18px;
-      color: green;
-      width: 80%;
-      padding: 10px;
-    }
-    #search-button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    #search-button:hover {
-      background-color: #45a049;
-    }
-    #message-box {
-      display: none;
-      margin-top: 20px;
-      font-size: 18px;
-    }
-    #message-box.success {
-      color: green;
-    }
-    #message-box.error {
-      color: red;
-    }
-    #error-message {
-      color: red;
-      margin-top: 20px;
-    }
-  </style>
-  <!-- Incluir la biblioteca SheetJS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
-  <!-- Incluir la biblioteca jsQR para leer códigos QR -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
-</head>
-<body>
+<html>
+  <head>
+    <title>Sheets API Quickstart</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <p>Sheets API Quickstart</p>
 
-  <h1>Lector de Códigos QR con Excel</h1>
+    <!--Add buttons to initiate auth sequence and sign out-->
+    <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
+    <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
 
-  <!-- Video donde se mostrará la cámara -->
-  <video id="video" autoplay playsinline></video>
+    <pre id="content" style="white-space: pre-wrap;"></pre>
 
-  <!-- Selección de trabajador -->
-  <div>
-    <label for="worker-select">Seleccione un trabajador:</label>
-    <select id="worker-select">
-      <option value="Trabajador 1">Manolo García</option>
-      <option value="Trabajador 2">Walter Bruce Willis</option>
-      <option value="Trabajador 3">Usher Raymond</option>
-      <option value="Trabajador 4">Kesha Sebert</option>
-      <option value="Trabajador 5">Shakira Mebarak</option>
-    </select>
-  </div>
+    <script type="text/javascript">
+      /* exported gapiLoaded */
+      /* exported gisLoaded */
+      /* exported handleAuthClick */
+      /* exported handleSignoutClick */
 
-  <!-- Campo de texto donde se mostrará el resultado del QR -->
-  <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
+      // TODO(developer): Set to client ID and API key from the Developer Console
+      const CLIENT_ID = '146933011470-1f383sont25h5pkdfgmu7inp81l16350.apps.googleusercontent.com';
+      const API_KEY = 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U';
 
-  <!-- Botón de búsqueda en el archivo Excel -->
-  <button id="search-button" disabled>Buscar ID en Excel</button>
+      // Discovery doc URL for APIs used by the quickstart
+      const DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
 
-  <!-- Contenedor para mensajes -->
-  <div id="message-box"></div>
+      // Authorization scopes required by the API; multiple scopes can be
+      // included, separated by spaces.
+      const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
 
-  <!-- Mensaje de error -->
-  <p id="error-message"></p>
+      let tokenClient;
+      let gapiInited = false;
+      let gisInited = false;
 
-  <script>
-    let excelData;
+      document.getElementById('authorize_button').style.visibility = 'hidden';
+      document.getElementById('signout_button').style.visibility = 'hidden';
 
-    // Función para cargar el archivo Excel desde una ruta fija
-    function loadExcel() {
-      fetch('Herramientas.xlsx') // Asegúrate de que 'Herramientas.xlsx' esté en la misma carpeta que este archivo HTML
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Error al cargar el archivo Excel');
-          }
-          return response.arrayBuffer();
-        })
-        .then(data => {
-          const workbook = XLSX.read(new Uint8Array(data), {type: 'array'});
-          const sheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          excelData = XLSX.utils.sheet_to_json(sheet, {header: 1});
-          console.log('Datos del Excel cargados:', excelData);
+      /**
+       * Callback after api.js is loaded.
+       */
+      function gapiLoaded() {
+        gapi.load('client', initializeGapiClient);
+      }
 
-          document.getElementById('search-button').disabled = false;  // Habilitar el botón de búsqueda
-        })
-        .catch(error => {
-          console.error('Error al cargar el archivo Excel:', error);
-          alert('Error al cargar el archivo Excel. Asegúrate de que el archivo esté en la misma carpeta que el index.html.');
+      /**
+       * Callback after the API client is loaded. Loads the
+       * discovery doc to initialize the API.
+       */
+      async function initializeGapiClient() {
+        await gapi.client.init({
+          apiKey: API_KEY,
+          discoveryDocs: [DISCOVERY_DOC],
         });
-    }
-
-    // Función de búsqueda en el archivo Excel
-    document.getElementById('search-button').addEventListener('click', function() {
-      const qrData = document.getElementById('qr-result').value;
-      if (!qrData) {
-        alert('Primero debes escanear un código QR.');
-        return;
+        gapiInited = true;
+        maybeEnableButtons();
       }
 
-      if (!excelData || excelData.length === 0) {
-        alert('El archivo Excel no está cargado o no contiene datos.');
-        return;
-      }
-
-      // Buscar el QR en la columna ID (columna 0)
-      const result = excelData.find(row => row[0] == qrData);
-
-      if (result) {
-        alert(`Datos encontrados:\nID: ${result[0]}\nNombre: ${result[1]}\nColor: ${result[2]}\nMarca: ${result[3]}\nNúmero de herramienta: ${result[4]}\nProceso: ${result[5]}\nMaterial: ${result[6]}`);
-      } else {
-        alert('No se encontraron datos para el código QR escaneado.');
-      }
-    });
-
-    const video = document.getElementById('video');
-    const errorMessage = document.getElementById('error-message');
-
-    function startCamera() {
-      console.log('Intentando acceder a la cámara...');
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
-          console.log('Acceso a la cámara exitoso.');
-          video.srcObject = stream;
-          video.setAttribute("playsinline", true);
-          video.play();
-          requestAnimationFrame(scanQRCode);
-        })
-        .catch((err) => {
-          console.error("Error al acceder a la cámara:", err);
-          errorMessage.textContent = "Error al acceder a la cámara: " + err.message;
+      /**
+       * Callback after Google Identity Services are loaded.
+       */
+      function gisLoaded() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: '', // defined later
         });
-    }
+        gisInited = true;
+        maybeEnableButtons();
+      }
 
-    function scanQRCode() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-
-        if (qrCode) {
-          console.log('Código QR escaneado:', qrCode.data);
-          document.getElementById('qr-result').value = qrCode.data;
-          video.srcObject.getTracks().forEach(track => track.stop());
-        } else {
-          requestAnimationFrame(scanQRCode);
+      /**
+       * Enables user interaction after all libraries are loaded.
+       */
+      function maybeEnableButtons() {
+        if (gapiInited && gisInited) {
+          document.getElementById('authorize_button').style.visibility = 'visible';
         }
-      } else {
-        requestAnimationFrame(scanQRCode);
       }
-    }
 
-    window.onload = function() {
-      startCamera();
-      loadExcel(); // Cargar el archivo Excel al cargar la página
-    };
-  </script>
+      /**
+       *  Sign in the user upon button click.
+       */
+      function handleAuthClick() {
+        tokenClient.callback = async (resp) => {
+          if (resp.error !== undefined) {
+            throw (resp);
+          }
+          document.getElementById('signout_button').style.visibility = 'visible';
+          document.getElementById('authorize_button').innerText = 'Refresh';
+          await listMajors();
+        };
 
-</body>
+        if (gapi.client.getToken() === null) {
+          // Prompt the user to select a Google Account and ask for consent to share their data
+          // when establishing a new session.
+          tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+          // Skip display of account chooser and consent dialog for an existing session.
+          tokenClient.requestAccessToken({prompt: ''});
+        }
+      }
+
+      /**
+       *  Sign out the user upon button click.
+       */
+      function handleSignoutClick() {
+        const token = gapi.client.getToken();
+        if (token !== null) {
+          google.accounts.oauth2.revoke(token.access_token);
+          gapi.client.setToken('');
+          document.getElementById('content').innerText = '';
+          document.getElementById('authorize_button').innerText = 'Authorize';
+          document.getElementById('signout_button').style.visibility = 'hidden';
+        }
+      }
+
+      /**
+       * Print the names and majors of students in a sample spreadsheet:
+       * https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+       */
+      async function listMajors() {
+        let response;
+        try {
+          // Fetch first 10 files
+          response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
+            range: 'Class Data!A2:E',
+          });
+        } catch (err) {
+          document.getElementById('content').innerText = err.message;
+          return;
+        }
+        const range = response.result;
+        if (!range || !range.values || range.values.length == 0) {
+          document.getElementById('content').innerText = 'No values found.';
+          return;
+        }
+        // Flatten to string to display
+        const output = range.values.reduce(
+            (str, row) => `${str}${row[0]}, ${row[4]}\n`,
+            'Name, Major:\n');
+        document.getElementById('content').innerText = output;
+      }
+    </script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+  </body>
 </html>
