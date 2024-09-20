@@ -89,8 +89,7 @@
     // Información de autenticación
     const API_KEY = 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U';
     const CLIENT_ID = '146933011470-1f383sont25h5pkdfgmu7inp81l16350.apps.googleusercontent.com';
-    const CLIENT_SECRET = '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';
-    const SPREADSHEET_ID = '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs'; // Sustituye con el ID de tu Google Sheet
+    const SPREADSHEET_ID = '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs'; // Este es el ID de tu Google Sheet
 
     // Iniciar la cámara para escanear códigos QR
     function startCamera() {
@@ -149,10 +148,40 @@
         discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
         scope: "https://www.googleapis.com/auth/spreadsheets"
       }).then(function () {
-        // Intentar firmarse automáticamente
         gapi.auth2.getAuthInstance().signIn();
       }).catch(function (error) {
         console.log('Error inicializando la API de Google: ', error);
+      });
+    }
+
+    // Función para buscar el ID en Google Sheets y obtener la herramienta correspondiente
+    function searchToolById(qrData, workerName) {
+      const params = {
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'A2:G', // Desde la fila 2, columnas A hasta G (donde se encuentran las herramientas)
+      };
+
+      gapi.client.sheets.spreadsheets.values.get(params).then((response) => {
+        const rows = response.result.values;
+        if (rows.length) {
+          // Buscar la herramienta en las filas
+          const tool = rows.find(row => row[0] === qrData);
+
+          if (tool) {
+            const fechaHora = new Date().toLocaleString();
+            const registro = [tool[0], tool[1], tool[2], tool[3], tool[4], tool[5], tool[6], workerName, fechaHora];
+
+            // Llamar a la función para agregar el registro en la misma hoja
+            appendDataToGoogleSheets(registro);
+          } else {
+            alert("No se encontró una herramienta con ese ID.");
+          }
+        } else {
+          alert("No hay datos en la hoja.");
+        }
+      }).catch((error) => {
+        console.error('Error al buscar la herramienta en Google Sheets:', error);
+        alert("Error al buscar la herramienta.");
       });
     }
 
@@ -160,7 +189,7 @@
     function appendDataToGoogleSheets(data) {
       const params = {
         spreadsheetId: SPREADSHEET_ID,
-        range: 'A1:D1', // Rango en la hoja donde se añadirá la fila
+        range: 'A1:I1', // Rango en la hoja donde se añadirá la fila
         valueInputOption: 'RAW',
       };
 
@@ -177,15 +206,12 @@
       });
     }
 
-    // Función para registrar los datos del QR en Google Sheets
+    // Evento al presionar el botón de búsqueda
     searchButton.addEventListener('click', () => {
       const qrData = qrResult.value;
       const workerName = workerSelect.value;
-      const fechaHora = new Date().toLocaleString();
-      const data = [qrData, workerName, fechaHora];
-
       if (qrData) {
-        appendDataToGoogleSheets(data);
+        searchToolById(qrData, workerName); // Buscar y registrar la herramienta
       } else {
         alert('No se ha escaneado ningún código QR.');
       }
