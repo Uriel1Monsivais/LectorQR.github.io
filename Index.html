@@ -108,17 +108,21 @@
 
     // Inicializar la API de Google Sheets
     function initGoogleAPI() {
-      gapi.load('client', () => {
-        gapi.client.init({
-          apiKey: 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U',
-          discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-        }).then(() => {
-          alert('API de Google Sheets cargada correctamente'); // Alerta cuando la API se cargue correctamente
-        }).catch((error) => {
-          alert('Error al cargar la API de Google Sheets: ' + error.details); // Alerta cuando la API no se pueda cargar
-          console.error('Error al cargar la API de Google Sheets:', error); // Error en la consola para más detalles
+      if (gapi) {
+        gapi.load('client', () => {
+          gapi.client.init({
+            apiKey: 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U',
+            discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+          }).then(() => {
+            alert('API de Google Sheets cargada correctamente'); 
+          }).catch((error) => {
+            alert('Error al cargar la API de Google Sheets: ' + error.details);
+            console.error('Error al cargar la API de Google Sheets:', error); 
+          });
         });
-      });
+      } else {
+        alert('La API de Google (gapi) no está definida. Asegúrate de que la biblioteca se cargue correctamente.');
+      }
     }
 
     // Iniciar la cámara para escanear códigos QR
