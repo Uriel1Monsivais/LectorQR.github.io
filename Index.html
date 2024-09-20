@@ -161,8 +161,11 @@
       }
     }
 
-    // Buscar el ID en la hoja de herramientas
+    // Convertir el código QR escaneado a String antes de la búsqueda
     function searchToolById(qrData, workerName) {
+      const qrString = String(qrData).trim(); // Convertir a string y eliminar espacios en blanco
+      alert("Buscando ID como string: " + qrString);
+
       const params = {
         spreadsheetId: HERRAMIENTAS_SPREADSHEET_ID,
         range: 'A2:A', // Desde la fila 2, columna A donde se encuentran los IDs
@@ -171,8 +174,8 @@
       gapi.client.sheets.spreadsheets.values.get(params).then((response) => {
         const rows = response.result.values;
         if (rows && rows.length > 0) {
-          // Buscar el ID en la columna A
-          const index = rows.findIndex(row => row[0] === qrData);
+          // Buscar el ID en la columna A (convertir filas a string para compararlas)
+          const index = rows.findIndex(row => String(row[0]).trim() === qrString);
           if (index !== -1) {
             alert(`ID encontrado en la fila ${index + 2}`);
 
