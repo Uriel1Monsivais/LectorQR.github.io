@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Herramientas</title>
-    <!-- Bootstrap CSS (Opcional para estilos) -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-    <!-- Estilos Personalizados -->
     <style>
         #qr-reader {
             width: 100%;
@@ -31,7 +29,7 @@
         <hr>
 
         <!-- Sección Principal -->
-        <div id="main-section" class="hidden">
+        <div id="main-section">
             <div class="row">
                 <div class="col-md-6">
                     <!-- Lector de QR -->
@@ -79,9 +77,6 @@
                 </button>
               </div>
               <div class="modal-body">
-                <!-- Botón para Descargar Registros -->
-                <button id="download-registros-btn" class="btn btn-primary mb-3">Descargar Registros</button>
-
                 <!-- Tabla de Registros -->
                 <table class="table table-bordered">
                     <thead>
@@ -96,22 +91,6 @@
                         <!-- Filas generadas dinámicamente -->
                     </tbody>
                 </table>
-
-                <hr>
-
-                <!-- Análisis de Uso -->
-                <h4>Análisis de Uso</h4>
-                <div class="form-group">
-                    <label for="periodo-select">Selecciona un período:</label>
-                    <select id="periodo-select" class="form-control w-50">
-                        <option value="">Selecciona un período</option>
-                        <option value="día">Día</option>
-                        <option value="semana">Semana</option>
-                        <option value="mes">Mes</option>
-                        <option value="año">Año</option>
-                    </select>
-                </div>
-                <canvas id="grafico" width="400" height="200"></canvas>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
@@ -123,68 +102,49 @@
     </div>
 
     <!-- Librerías Externas -->
-    <!-- jQuery y Bootstrap JS (para el modal) -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
-    <!-- SheetJS -->
+    <!-- Librería para leer códigos QR -->
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
+    <!-- SheetJS para leer y escribir Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-    <!-- Html5-Qrcode -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         // Variables globales para almacenar datos
         let herramientasData = [];
         let registrosData = [];
-        let chartInstance = null;
 
-        // Función para cargar los archivos Excel
+        // Función para cargar archivos Excel (modificado para ser usados en servidor)
         async function cargarArchivos() {
             const herramientasFile = 'Herramientas.xlsx';
             const registrosFile = 'Registros.xlsx';
 
             try {
-                // Fetch Herramientas.xlsx
                 const responseHerramientas = await fetch(herramientasFile);
-                if (!responseHerramientas.ok) throw new Error('No se pudo cargar Herramientas.xlsx');
                 const dataHerramientas = await responseHerramientas.arrayBuffer();
                 const workbookHerramientas = XLSX.read(dataHerramientas, { type: 'array' });
                 const firstSheetHerramientas = workbookHerramientas.SheetNames[0];
                 const worksheetHerramientas = workbookHerramientas.Sheets[firstSheetHerramientas];
                 herramientasData = XLSX.utils.sheet_to_json(worksheetHerramientas);
 
-                // Fetch Registros.xlsx
                 const responseRegistros = await fetch(registrosFile);
-                if (!responseRegistros.ok) {
-                    // Si Registros.xlsx no existe, inicializar como vacío
-                    registrosData = [];
-                } else {
-                    const dataRegistros = await responseRegistros.arrayBuffer();
-                    const workbookRegistros = XLSX.read(dataRegistros, { type: 'array' });
-                    const firstSheetRegistros = workbookRegistros.SheetNames[0];
-                    const worksheetRegistros = workbookRegistros.Sheets[firstSheetRegistros];
-                    registrosData = XLSX.utils.sheet_to_json(worksheetRegistros);
-                }
+                const dataRegistros = await responseRegistros.arrayBuffer();
+                const workbookRegistros = XLSX.read(dataRegistros, { type: 'array' });
+                const firstSheetRegistros = workbookRegistros.SheetNames[0];
+                const worksheetRegistros = workbookRegistros.Sheets[firstSheetRegistros];
+                registrosData = XLSX.utils.sheet_to_json(worksheetRegistros);
 
-                // Mostrar la sección principal
-                document.getElementById('main-section').classList.remove('hidden');
-
-                // Cargar la lista de trabajadores
                 cargarTrabajadores();
+                iniciarQR(); // Iniciar el QR después de cargar los datos
 
-                // Iniciar el lector de QR
-                iniciarQR();
             } catch (error) {
-                console.error(error);
-                alert('Error al cargar los archivos Excel. Asegúrate de que existan en la misma carpeta que index.html.');
+                console.error('Error al cargar los archivos', error);
             }
         }
 
-        // Función para cargar y mostrar la lista de trabajadores
+        // Función para cargar la lista de trabajadores
         function cargarTrabajadores(){
             const workersUl = document.getElementById('workers-ul');
             workersUl.innerHTML = '';
@@ -197,175 +157,28 @@
         }
 
         // Inicializar el lector de QR
-        function iniciarQR(){
-            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        function iniciarQR() {
+            const qrCodeSuccessCallback = (decodedText) => {
                 document.getElementById('id-qr').value = decodedText;
-                html5QrcodeScanner.clear().catch(error => {
-                    console.error('Error al limpiar el escáner QR:', error);
-                });
+                console.log(`Código QR leído: ${decodedText}`);
             };
 
-            const config = { fps: 10, qrbox: 250 };
-            const html5QrcodeScanner = new Html5QrcodeScanner(
-                "qr-reader", config, /* verbose= */ false);
-            html5QrcodeScanner.render(qrCodeSuccessCallback);
-        }
-
-        // Manejar el botón "Buscar ID y Registrar"
-        document.getElementById('buscar-btn').addEventListener('click', function(){
-            const id = document.getElementById('id-qr').value;
-            const maquina = document.getElementById('maquina').value.trim();
-
-            if(id === '' || maquina === ''){
-                alert('Por favor, escanea un ID y completa el nombre de la máquina.');
-                return;
-            }
-
-            // Validar si el ID existe en herramientasData
-            const trabajador = herramientasData.find(t => String(t.Id) === String(id));
-            if(!trabajador){
-                alert('ID no encontrado en Herramientas.xlsx.');
-                return;
-            }
-
-            // Crear nuevo registro
-            const ahora = new Date();
-            const nuevoRegistro = {
-                ID: id,
-                Fecha: ahora.toISOString().split('T')[0],
-                Hora: ahora.toTimeString().split(' ')[0],
-                Máquina: maquina
-            };
-
-            registrosData.push(nuevoRegistro);
-            alert('Registro exitoso.');
-
-            // Limpiar campos
-            document.getElementById('id-qr').value = '';
-            document.getElementById('maquina').value = '';
-        });
-
-        // Manejar el botón "Ver Registros"
-        document.getElementById('view-registros-btn').addEventListener('click', function(){
-            mostrarRegistros();
-            $('#registrosModal').modal('show');
-        });
-
-        // Función para mostrar registros en la tabla
-        function mostrarRegistros(){
-            const tbody = document.getElementById('registros-table-body');
-            tbody.innerHTML = '';
-            registrosData.forEach(registro => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${registro.ID}</td>
-                    <td>${registro.Fecha}</td>
-                    <td>${registro.Hora}</td>
-                    <td>${registro.Máquina}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Función para descargar Registros.xlsx
-        document.getElementById('download-registros-btn').addEventListener('click', function(){
-            const worksheet = XLSX.utils.json_to_sheet(registrosData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Registros");
-            XLSX.writeFile(workbook, "Registros_actualizados.xlsx");
-        });
-
-        // Manejar selección de período para análisis
-        document.getElementById('periodo-select').addEventListener('change', function(){
-            const periodo = this.value;
-            if(periodo === ''){
-                if(chartInstance){
-                    chartInstance.destroy();
-                }
-                return;
-            }
-
-            // Agrupar datos según el período seleccionado
-            let agrupado = {};
-            registrosData.forEach(registro => {
-                let clave = '';
-                const fecha = new Date(registro.Fecha);
-                switch(periodo){
-                    case 'día':
-                        clave = registro.Fecha;
-                        break;
-                    case 'semana':
-                        const semana = getWeekNumber(fecha);
-                        clave = `Semana ${semana}`;
-                        break;
-                    case 'mes':
-                        clave = `${fecha.getMonth() + 1}/${fecha.getFullYear()}`;
-                        break;
-                    case 'año':
-                        clave = `${fecha.getFullYear()}`;
-                        break;
-                }
-
-                if(!agrupado[registro.Máquina]){
-                    agrupado[registro.Máquina] = 0;
-                }
-                agrupado[registro.Máquina]++;
-            });
-
-            // Preparar datos para Chart.js
-            const labels = Object.keys(agrupado);
-            const data = Object.values(agrupado);
-
-            // Crear o actualizar el gráfico
-            const ctx = document.getElementById('grafico').getContext('2d');
-            if(chartInstance){
-                chartInstance.destroy();
-            }
-            chartInstance = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: '# de Usos',
-                        data: data,
-                        backgroundColor: generateColors(labels.length),
-                        borderColor: generateColors(labels.length, true),
-                        borderWidth: 1
-                    }]
+            const html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, // Intentar utilizar la cámara trasera
+                {
+                    fps: 10,    // Cuadros por segundo
+                    qrbox: 250  // Tamaño del área del QR
                 },
-                options: {
-                    responsive: true
-                }
+                qrCodeSuccessCallback)
+            .catch((err) => {
+                console.log(`Error al iniciar el escaneo de QR: ${err}`);
             });
-        });
-
-        // Función para obtener el número de semana del año
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-            return weekNo;
         }
 
-        // Función para generar colores aleatorios
-        function generateColors(num, border=false){
-            const colors = [];
-            for(let i=0; i<num; i++){
-                const r = Math.floor(Math.random() * 255);
-                const g = Math.floor(Math.random() * 255);
-                const b = Math.floor(Math.random() * 255);
-                if(border){
-                    colors.push(`rgba(${r}, ${g}, ${b}, 1)`);
-                } else {
-                    colors.push(`rgba(${r}, ${g}, ${b}, 0.2)`);
-                }
-            }
-            return colors;
-        }
-
-        // Iniciar la carga de archivos al cargar la página
+        // Iniciar la carga de archivos cuando la página esté lista
         window.addEventListener('load', cargarArchivos);
+
     </script>
 </body>
 </html>
