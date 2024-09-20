@@ -30,24 +30,6 @@
         <h1 class="text-center">Gestión de Herramientas</h1>
         <hr>
 
-        <!-- Sección para subir archivos Excel -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Subir Archivos Excel</h3>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="herramientas-file">Herramientas.xlsx</label>
-                    <input type="file" id="herramientas-file" class="form-control-file" accept=".xlsx">
-                </div>
-                <div class="form-group">
-                    <label for="registros-file">Registros.xlsx</label>
-                    <input type="file" id="registros-file" class="form-control-file" accept=".xlsx">
-                </div>
-                <button id="load-files-btn" class="btn btn-primary">Cargar Archivos</button>
-            </div>
-        </div>
-
         <!-- Sección Principal -->
         <div id="main-section" class="hidden">
             <div class="row">
@@ -161,46 +143,46 @@
         let chartInstance = null;
 
         // Función para cargar los archivos Excel
-        document.getElementById('load-files-btn').addEventListener('click', function(){
-            const herramientasFile = document.getElementById('herramientas-file').files[0];
-            const registrosFile = document.getElementById('registros-file').files[0];
+        async function cargarArchivos() {
+            const herramientasFile = 'Herramientas.xlsx';
+            const registrosFile = 'Registros.xlsx';
 
-            if(!herramientasFile || !registrosFile){
-                alert('Por favor, selecciona ambos archivos Excel.');
-                return;
-            }
+            try {
+                // Fetch Herramientas.xlsx
+                const responseHerramientas = await fetch(herramientasFile);
+                if (!responseHerramientas.ok) throw new Error('No se pudo cargar Herramientas.xlsx');
+                const dataHerramientas = await responseHerramientas.arrayBuffer();
+                const workbookHerramientas = XLSX.read(dataHerramientas, { type: 'array' });
+                const firstSheetHerramientas = workbookHerramientas.SheetNames[0];
+                const worksheetHerramientas = workbookHerramientas.Sheets[firstSheetHerramientas];
+                herramientasData = XLSX.utils.sheet_to_json(worksheetHerramientas);
 
-            // Leer Herramientas.xlsx
-            const readerHerramientas = new FileReader();
-            readerHerramientas.onload = function(e){
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheet = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheet];
-                herramientasData = XLSX.utils.sheet_to_json(worksheet);
-                cargarTrabajadores();
-            };
-            readerHerramientas.readAsArrayBuffer(herramientasFile);
-
-            // Leer Registros.xlsx
-            const readerRegistros = new FileReader();
-            readerRegistros.onload = function(e){
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheet = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheet];
-                registrosData = XLSX.utils.sheet_to_json(worksheet);
-            };
-            readerRegistros.readAsArrayBuffer(registrosFile);
-
-            // Mostrar la sección principal después de cargar
-            setTimeout(() => {
-                if(herramientasData.length > 0){
-                    document.getElementById('main-section').classList.remove('hidden');
-                    iniciarQR(); // Iniciar el QR después de cargar los datos
+                // Fetch Registros.xlsx
+                const responseRegistros = await fetch(registrosFile);
+                if (!responseRegistros.ok) {
+                    // Si Registros.xlsx no existe, inicializar como vacío
+                    registrosData = [];
+                } else {
+                    const dataRegistros = await responseRegistros.arrayBuffer();
+                    const workbookRegistros = XLSX.read(dataRegistros, { type: 'array' });
+                    const firstSheetRegistros = workbookRegistros.SheetNames[0];
+                    const worksheetRegistros = workbookRegistros.Sheets[firstSheetRegistros];
+                    registrosData = XLSX.utils.sheet_to_json(worksheetRegistros);
                 }
-            }, 1000);
-        });
+
+                // Mostrar la sección principal
+                document.getElementById('main-section').classList.remove('hidden');
+
+                // Cargar la lista de trabajadores
+                cargarTrabajadores();
+
+                // Iniciar el lector de QR
+                iniciarQR();
+            } catch (error) {
+                console.error(error);
+                alert('Error al cargar los archivos Excel. Asegúrate de que existan en la misma carpeta que index.html.');
+            }
+        }
 
         // Función para cargar y mostrar la lista de trabajadores
         function cargarTrabajadores(){
@@ -290,7 +272,7 @@
             const worksheet = XLSX.utils.json_to_sheet(registrosData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Registros");
-            XLSX.writeFile(workbook, "Registros.xlsx");
+            XLSX.writeFile(workbook, "Registros_actualizados.xlsx");
         });
 
         // Manejar selección de período para análisis
@@ -382,6 +364,8 @@
             return colors;
         }
 
+        // Iniciar la carga de archivos al cargar la página
+        window.addEventListener('load', cargarArchivos);
     </script>
 </body>
 </html>
