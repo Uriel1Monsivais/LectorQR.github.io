@@ -126,10 +126,10 @@
           // Fetch the data from the "Herramientas" sheet
           response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs',
-            range: 'Herramientas!A2:G', // Adjust this range according to your sheet structure
+            range: 'Herramientas!A2:G', // Ajustado para incluir la columna G
           });
         } catch (err) {
-          document.getElementById('content').innerText = err.message;
+          document.getElementById('content').innerText = 'Error fetching data: ' + err.message;
           return;
         }
         const range = response.result;
@@ -139,8 +139,8 @@
         }
         // Flatten to string to display
         const output = range.values.reduce(
-            (str, row) => `${str}${row[0]}, ${row[1]}, ${row[2]}, ${row[3]}, ${row[4]}\n`,
-            'Name, Column1, Column2, Column3, Column4:\n');
+            (str, row) => `${str}${row[0]}, ${row[1]}, ${row[2]}, ${row[3]}, ${row[4]}, ${row[5]}, ${row[6]}\n`,
+            'Id, Nombre, Color, Marca, Número de Herramienta, Proceso, Material:\n');
         document.getElementById('content').innerText = output;
       }
     </script>
