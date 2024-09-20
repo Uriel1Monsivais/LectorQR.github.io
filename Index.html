@@ -1,191 +1,28 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lector de Códigos QR con Excel</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    #video {
-      width: 100%;
-      max-width: 400px;
-      margin: 20px auto;
-      border: 1px solid black;
-    }
-    #qr-result {
-      margin-top: 20px;
-      font-size: 18px;
-      color: green;
-      width: 80%;
-      padding: 10px;
-    }
-    #search-button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    #search-button:hover {
-      background-color: #45a049;
-    }
-    #message-box {
-      display: none;
-      margin-top: 20px;
-      font-size: 18px;
-    }
-    #message-box.success {
-      color: green;
-    }
-    #message-box.error {
-      color: red;
-    }
-    #error-message {
-      color: red;
-      margin-top: 20px;
-    }
-  </style>
-  <!-- Incluir la biblioteca SheetJS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
-  <!-- Incluir la biblioteca jsQR para leer códigos QR -->
- <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
-
+    <meta charset="UTF-8">
+    <title>Gestión de Herramientas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="{{ url_for('static', filename='html5-qrcode.min.js') }}"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
+    <h1>Gestión de Herramientas</h1>
+    <button onclick="window.location.href='/registros'">Ver Registros</button>
 
-  <h1>Lector de Códigos QR con Excel</h1>
+    <div id="qr-reader" style="width:300px"></div>
+    <input type="text" id="id-qr" placeholder="ID leído del QR" readonly>
+    <input type="text" id="maquina" placeholder="Nombre de la Máquina">
+    <button id="buscar-btn">Buscar ID y Registrar</button>
 
-  <!-- Video donde se mostrará la cámara -->
-  <video id="video" autoplay playsinline></video>
+    <h2>Trabajadores Activos</h2>
+    <ul>
+        {% for trabajador in trabajadores %}
+            <li>{{ trabajador }}</li>
+        {% endfor %}
+    </ul>
 
-  <!-- Selección de trabajador -->
-  <div>
-    <label for="worker-select">Seleccione un trabajador:</label>
-    <select id="worker-select">
-      <option value="Trabajador 1">Manolo García</option>
-      <option value="Trabajador 2">Walter Bruce Willis</option>
-      <option value="Trabajador 3">Usher Raymond</option>
-      <option value="Trabajador 4">Kesha Sebert</option>
-      <option value="Trabajador 5">Shakira Mebarak</option>
-    </select>
-  </div>
-
-  <!-- Campo de texto donde se mostrará el resultado del QR -->
-  <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
-
-  <!-- Botón de búsqueda en el archivo Excel -->
-  <button id="search-button" disabled>Buscar ID en Excel</button>
-
-  <!-- Contenedor para mensajes -->
-  <div id="message-box"></div>
-
-  <!-- Mensaje de error -->
-  <p id="error-message"></p>
-
-  <script>
-    let excelData;
-
-    // Función para cargar el archivo Excel desde una ruta fija
-    function loadExcel() {
-      fetch('Herramientas.xlsx') // Asegúrate de que 'Herramientas.xlsx' esté en la misma carpeta que este archivo HTML
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Error al cargar el archivo Excel');
-          }
-          return response.arrayBuffer();
-        })
-        .then(data => {
-          const workbook = XLSX.read(new Uint8Array(data), {type: 'array'});
-          const sheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          excelData = XLSX.utils.sheet_to_json(sheet, {header: 1});
-          console.log('Datos del Excel cargados:', excelData);
-
-          document.getElementById('search-button').disabled = false;  // Habilitar el botón de búsqueda
-        })
-        .catch(error => {
-          console.error('Error al cargar el archivo Excel:', error);
-          alert('Error al cargar el archivo Excel. Asegúrate de que el archivo esté en la misma carpeta que el index.html.');
-        });
-    }
-
-    // Función de búsqueda en el archivo Excel
-    document.getElementById('search-button').addEventListener('click', function() {
-      const qrData = document.getElementById('qr-result').value;
-      if (!qrData) {
-        alert('Primero debes escanear un código QR.');
-        return;
-      }
-
-      if (!excelData || excelData.length === 0) {
-        alert('El archivo Excel no está cargado o no contiene datos.');
-        return;
-      }
-
-      // Buscar el QR en la columna ID (columna 0)
-      const result = excelData.find(row => row[0] == qrData);
-
-      if (result) {
-        alert(`Datos encontrados:\nID: ${result[0]}\nNombre: ${result[1]}\nColor: ${result[2]}\nMarca: ${result[3]}\nNúmero de herramienta: ${result[4]}\nProceso: ${result[5]}\nMaterial: ${result[6]}`);
-      } else {
-        alert('No se encontraron datos para el código QR escaneado.');
-      }
-    });
-
-    const video = document.getElementById('video');
-    const errorMessage = document.getElementById('error-message');
-
-    function startCamera() {
-      console.log('Intentando acceder a la cámara...');
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
-          console.log('Acceso a la cámara exitoso.');
-          video.srcObject = stream;
-          video.setAttribute("playsinline", true);
-          video.play();
-          requestAnimationFrame(scanQRCode);
-        })
-        .catch((err) => {
-          console.error("Error al acceder a la cámara:", err);
-          errorMessage.textContent = "Error al acceder a la cámara: " + err.message;
-        });
-    }
-
-    function scanQRCode() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-
-        if (qrCode) {
-          console.log('Código QR escaneado:', qrCode.data);
-          document.getElementById('qr-result').value = qrCode.data;
-          video.srcObject.getTracks().forEach(track => track.stop());
-        } else {
-          requestAnimationFrame(scanQRCode);
-        }
-      } else {
-        requestAnimationFrame(scanQRCode);
-      }
-    }
-
-    window.onload = function() {
-      startCamera();
-      loadExcel(); // Cargar el archivo Excel al cargar la página
-    };
-  </script>
-
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
 </body>
 </html>
