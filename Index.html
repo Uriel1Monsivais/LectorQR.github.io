@@ -34,6 +34,19 @@
     #start-button:hover {
       background-color: #45a049;
     }
+    #report-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #report-button:hover {
+      background-color: #0b7dda;
+    }
   </style>
 </head>
 <body>
@@ -58,6 +71,9 @@
 
   <!-- Botón de búsqueda -->
   <button id="search-button">Buscar</button>
+  
+  <!-- Botón para descargar el reporte -->
+  <button id="report-button">Reporte</button>
 
   <p id="error-message" style="color: red;"></p>
 
@@ -70,7 +86,9 @@
     const qrResult = document.getElementById('qr-result');
     const workerSelect = document.getElementById('worker-select');
     const searchButton = document.getElementById('search-button');
+    const reportButton = document.getElementById('report-button');
     let scanning = false;
+    let registros = []; // Para almacenar los registros temporalmente
 
     // Acceso a la cámara usando la API mediaDevices
     function startCamera() {
@@ -116,7 +134,7 @@
       }
     }
 
-    // Función para buscar datos en el Excel y registrar en Registros.xlsx
+    // Función para buscar datos en el Excel y registrar temporalmente en el array
     function fetchDataAndLog(qrData, workerName) {
       fetch('Herramientas.xlsx')
         .then(response => response.arrayBuffer())
@@ -136,7 +154,9 @@
               Nombre_Del_Trabajador: workerName
             };
 
-            logDataInExcel(registro);
+            // Agregar el registro al array en memoria
+            registros.push(registro);
+            alert('Registro guardado temporalmente.');
           } else {
             alert('No se encontraron datos para el código QR escaneado.');
           }
@@ -147,41 +167,39 @@
         });
     }
 
-    // Función para registrar los datos en Registros.xlsx
-    function logDataInExcel(registro) {
-      fetch('Registros.xlsx')
-        .then(response => response.arrayBuffer())
-        .then(data => {
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    // Función para descargar el archivo de registros cuando se haga clic en "Reporte"
+    function downloadReport() {
+      if (registros.length === 0) {
+        alert("No hay registros para generar un reporte.");
+        return;
+      }
 
-          // Convertir la hoja a formato JSON para agregar el nuevo registro
-          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-          rows.push([registro.Id_Maquina, registro.Nombre_de_la_Maquina, registro.Fecha_y_horas, registro.Nombre_Del_Trabajador]);
+      // Crear un nuevo workbook y una hoja para el reporte
+      const wb = XLSX.utils.book_new();
+      const wsData = [["Id_Maquina", "Nombre_de_la_Maquina", "Fecha_y_horas", "Nombre_Del_Trabajador"]];
+      
+      // Añadir cada registro a la hoja
+      registros.forEach(registro => {
+        wsData.push([registro.Id_Maquina, registro.Nombre_de_la_Maquina, registro.Fecha_y_horas, registro.Nombre_Del_Trabajador]);
+      });
 
-          // Escribir el nuevo registro en la hoja
-          const newSheet = XLSX.utils.aoa_to_sheet(rows);
-          workbook.Sheets[workbook.SheetNames[0]] = newSheet;
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, "Registros");
 
-          // Exportar el archivo actualizado
-          const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-          const blob = new Blob([wbout], { type: "application/octet-stream" });
+      // Exportar el archivo
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
 
-          // Descargar el archivo actualizado
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "Registros_actualizado.xlsx";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+      // Descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Registros.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
-          alert('Registro guardado exitosamente.');
-        })
-        .catch(error => {
-          console.error('Error al cargar el archivo Registros.xlsx:', error);
-          alert('Error al cargar el archivo de registros.');
-        });
+      alert("Reporte descargado.");
     }
 
     // Evento al presionar el botón de búsqueda
@@ -194,6 +212,9 @@
         alert('No se ha escaneado ningún código QR.');
       }
     });
+
+    // Evento al presionar el botón de reporte
+    reportButton.addEventListener('click', downloadReport);
 
     // Iniciar la cámara cuando se carga la página
     window.addEventListener('load', startCamera);
