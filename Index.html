@@ -61,14 +61,14 @@
 
   <p id="error-message" style="color: red;"></p>
 
-  <!-- Incluir la librería xlsx.js para leer archivos Excel -->
+  <!-- Incluir la librería xlsx.js para leer y escribir archivos Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
   <script>
     const video = document.getElementById('video');
     const qrResult = document.getElementById('qr-result');
-    const errorMessage = document.getElementById('error-message');
+    const workerSelect = document.getElementById('worker-select');
     const searchButton = document.getElementById('search-button');
     let scanning = false;
 
@@ -79,11 +79,9 @@
           video.srcObject = stream;
           video.setAttribute("playsinline", true); // Para evitar problemas en iOS
           scanning = true;
-          errorMessage.textContent = ''; // Limpiar mensajes de error si la cámara es accesible
           requestAnimationFrame(scanQRCode); // Llamar la función para comenzar a escanear
         })
         .catch((err) => {
-          errorMessage.textContent = "Error al acceder a la cámara: " + err.message;
           console.error("Error al acceder a la cámara: ", err);
         });
     }
@@ -118,33 +116,27 @@
       }
     }
 
-    // Función para cargar el archivo Excel y buscar el dato en la columna Id
-    function fetchDataFromExcel(qrData) {
+    // Función para buscar datos en el Excel y registrar en Registros.xlsx
+    function fetchDataAndLog(qrData, workerName) {
       fetch('Herramientas.xlsx')
         .then(response => response.arrayBuffer())
         .then(data => {
           const workbook = XLSX.read(data, { type: 'array' });
-
-          // Asumimos que los datos están en la primera hoja
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 });
 
-          // Convertir qrData a cadena de texto
-          const qrText = String(qrData).trim();
-
-          // Buscar el dato del QR en la primera columna (Id), asegurando que ambos son texto
-          const result = worksheet.find(row => String(row[0]).trim() === qrText);
-          
+          // Buscar el dato del QR en la primera columna (Id)
+          const result = worksheet.find(row => String(row[0]).trim() === String(qrData).trim());
           if (result) {
-            // Muestra los datos encontrados, suponiendo que son: Id, Nombre, Color, Marca, Número de herramienta, Proceso, Material
-            alert('Datos encontrados:\n' +
-                  'Id: ' + result[0] + '\n' +
-                  'Nombre: ' + result[1] + '\n' +
-                  'Color: ' + result[2] + '\n' +
-                  'Marca: ' + result[3] + '\n' +
-                  'Número de herramienta: ' + result[4] + '\n' +
-                  'Proceso: ' + result[5] + '\n' +
-                  'Material: ' + result[6]);
+            const fechaHora = new Date().toLocaleString();
+            const registro = {
+              Id_Maquina: result[0],
+              Nombre_de_la_Maquina: result[1],
+              Fecha_y_horas: fechaHora,
+              Nombre_Del_Trabajador: workerName
+            };
+
+            logDataInExcel(registro);
           } else {
             alert('No se encontraron datos para el código QR escaneado.');
           }
@@ -155,11 +147,49 @@
         });
     }
 
+    // Función para registrar los datos en Registros.xlsx
+    function logDataInExcel(registro) {
+      fetch('Registros.xlsx')
+        .then(response => response.arrayBuffer())
+        .then(data => {
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+          // Convertir la hoja a formato JSON para agregar el nuevo registro
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+          rows.push([registro.Id_Maquina, registro.Nombre_de_la_Maquina, registro.Fecha_y_horas, registro.Nombre_Del_Trabajador]);
+
+          // Escribir el nuevo registro en la hoja
+          const newSheet = XLSX.utils.aoa_to_sheet(rows);
+          workbook.Sheets[workbook.SheetNames[0]] = newSheet;
+
+          // Exportar el archivo actualizado
+          const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+          const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+          // Descargar el archivo actualizado
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "Registros_actualizado.xlsx";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          alert('Registro guardado exitosamente.');
+        })
+        .catch(error => {
+          console.error('Error al cargar el archivo Registros.xlsx:', error);
+          alert('Error al cargar el archivo de registros.');
+        });
+    }
+
     // Evento al presionar el botón de búsqueda
     searchButton.addEventListener('click', () => {
       const qrData = qrResult.value;
+      const workerName = workerSelect.value;
       if (qrData) {
-        fetchDataFromExcel(qrData);
+        fetchDataAndLog(qrData, workerName);
       } else {
         alert('No se ha escaneado ningún código QR.');
       }
