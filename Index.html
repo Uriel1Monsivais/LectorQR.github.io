@@ -6,22 +6,22 @@
     <!-- Bootstrap CSS (Opcional para estilos) -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-
-    <!-- Html5-Qrcode CSS -->
+    <!-- Estilos Personalizados -->
     <style>
         #qr-reader {
-            width: 300px;
+            width: 100%;
+            max-width: 400px;
             margin: 0 auto;
         }
         #worker-list {
             max-height: 200px;
             overflow-y: auto;
         }
-        .container {
-            margin-top: 20px;
-        }
         .hidden {
             display: none;
+        }
+        .container {
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -97,6 +97,9 @@
                 </button>
               </div>
               <div class="modal-body">
+                <!-- Botón para Descargar Registros -->
+                <button id="download-registros-btn" class="btn btn-primary mb-3">Descargar Registros</button>
+
                 <!-- Tabla de Registros -->
                 <table class="table table-bordered">
                     <thead>
@@ -194,6 +197,7 @@
             setTimeout(() => {
                 if(herramientasData.length > 0){
                     document.getElementById('main-section').classList.remove('hidden');
+                    iniciarQR(); // Iniciar el QR después de cargar los datos
                 }
             }, 1000);
         });
@@ -224,15 +228,6 @@
                 "qr-reader", config, /* verbose= */ false);
             html5QrcodeScanner.render(qrCodeSuccessCallback);
         }
-
-        // Iniciar el QR después de cargar los trabajadores
-        document.getElementById('load-files-btn').addEventListener('click', function(){
-            setTimeout(() => {
-                if(herramientasData.length > 0){
-                    iniciarQR();
-                }
-            }, 1500);
-        });
 
         // Manejar el botón "Buscar ID y Registrar"
         document.getElementById('buscar-btn').addEventListener('click', function(){
@@ -289,6 +284,14 @@
                 tbody.appendChild(tr);
             });
         }
+
+        // Función para descargar Registros.xlsx
+        document.getElementById('download-registros-btn').addEventListener('click', function(){
+            const worksheet = XLSX.utils.json_to_sheet(registrosData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Registros");
+            XLSX.writeFile(workbook, "Registros.xlsx");
+        });
 
         // Manejar selección de período para análisis
         document.getElementById('periodo-select').addEventListener('change', function(){
@@ -379,22 +382,6 @@
             return colors;
         }
 
-        // Descargar Registros.xlsx
-        // Puedes agregar un botón para descargar los registros actualizados si lo deseas.
-        // Por ejemplo, agregar el siguiente botón en el modal de registros:
-        /*
-        <button id="download-registros-btn" class="btn btn-primary">Descargar Registros</button>
-        */
-
-        // Y luego manejar su funcionalidad:
-        /*
-        document.getElementById('download-registros-btn').addEventListener('click', function(){
-            const worksheet = XLSX.utils.json_to_sheet(registrosData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Registros");
-            XLSX.writeFile(workbook, "Registros.xlsx");
-        });
-        */
     </script>
 </body>
 </html>
