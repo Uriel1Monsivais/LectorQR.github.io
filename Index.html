@@ -108,19 +108,49 @@
             };
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-                .catch(err => {
-                    console.error(`Unable to start QR scanner: ${err}`);
-                });
+            html5QrCode.start(
+                { facingMode: "environment" }, // Usar la cámara trasera del dispositivo
+                config, qrCodeSuccessCallback
+            ).catch(err => {
+                console.error(`Unable to start QR scanner: ${err}`);
+            });
         }
 
-        // Cargar datos y preparar la página cuando esté lista
+        // Cargar datos de Excel automáticamente al cargar la página
+        async function cargarDatosExcel() {
+            try {
+                const dataHerramientas = await fetch('Herramientas.xlsx').then(res => res.arrayBuffer());
+                const dataRegistros = await fetch('Registros.xlsx').then(res => res.arrayBuffer());
+
+                const wbHerramientas = XLSX.read(dataHerramientas, { type: 'array' });
+                herramientasData = XLSX.utils.sheet_to_json(wbHerramientas.Sheets[wbHerramientas.SheetNames[0]]);
+
+                const wbRegistros = XLSX.read(dataRegistros, { type: 'array' });
+                registrosData = XLSX.utils.sheet_to_json(wbRegistros.Sheets[wbRegistros.SheetNames[0]]);
+
+                cargarTrabajadores();
+            } catch (error) {
+                console.error('Error loading Excel files:', error);
+            }
+        }
+
+        function cargarTrabajadores() {
+            const workersUl = document.getElementById('workers-ul');
+            workersUl.innerHTML = '';
+            herramientasData.forEach(trabajador => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                li.textContent = trabajador.Nombre;
+                workersUl.appendChild(li);
+            });
+        }
+
         window.addEventListener('load', function() {
+            cargarDatosExcel(); // Cargar Excel y preparar datos
             iniciarQR(); // Iniciar escáner QR
-            // Aquí podrías cargar los archivos Excel automáticamente si es necesario
         });
 
-        // Más funciones como antes...
+        // Más funciones para manejar registros y reportes...
     </script>
 </body>
 </html>
