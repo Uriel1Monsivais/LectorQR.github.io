@@ -103,6 +103,20 @@
       alert("Autenticación exitosa");
     }
 
+    // Inicializar la API de Google Sheets
+    function initGoogleAPI() {
+      gapi.load('client', () => {
+        gapi.client.init({
+          apiKey: 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U',
+          discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+        }).then(() => {
+          alert('API de Google Sheets cargada correctamente');
+        }).catch((error) => {
+          alert('Error al cargar la API de Google Sheets: ' + error.details);
+        });
+      });
+    }
+
     // Iniciar la cámara para escanear códigos QR
     function startCamera() {
       navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
@@ -220,15 +234,20 @@
     searchButton.addEventListener('click', () => {
       const qrData = qrResult.value;
       const workerName = workerSelect.value;
+      alert("Botón de búsqueda presionado");
       if (qrData) {
+        alert("Buscando ID...");
         searchToolById(qrData, workerName); // Buscar y registrar la herramienta
       } else {
         alert('No se ha escaneado ningún código QR.');
       }
     });
 
-    // Iniciar la cámara cuando se carga la página
-    window.addEventListener('load', startCamera);
+    // Iniciar la cámara y la API cuando se carga la página
+    window.addEventListener('load', () => {
+      startCamera();
+      initGoogleAPI(); // Inicializar la API de Google Sheets
+    });
   </script>
 
 </body>
