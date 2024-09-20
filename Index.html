@@ -173,6 +173,7 @@
 
       gapi.client.sheets.spreadsheets.values.get(params).then((response) => {
         const rows = response.result.values;
+        console.log("Datos obtenidos de Google Sheets: ", rows); // Verifica los datos
         if (rows && rows.length > 0) {
           // Buscar el ID en la columna A (convertir filas a string para compararlas)
           const index = rows.findIndex(row => String(row[0]).trim() === qrString);
