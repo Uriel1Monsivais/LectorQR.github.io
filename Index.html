@@ -71,11 +71,19 @@
 
   <!-- Botón de búsqueda -->
   <button id="search-button">Buscar</button>
-  
+
+  <!-- Google Identity -->
+  <div id="g_id_onload"
+       data-client_id="146933011470-1f383sont25h5pkdfgmu7inp81l16350.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse">
+  </div>
+
+  <div class="g_id_signin" data-type="standard"></div>
+
   <p id="error-message" style="color: red;"></p>
 
-  <!-- Incluir la librería gapi.js para la autenticación y el uso de Google Sheets -->
-  <script async defer src="https://apis.google.com/js/api.js"></script>
+  <!-- Incluir la nueva librería Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
@@ -86,13 +94,11 @@
     const searchButton = document.getElementById('search-button');
     let scanning = false;
 
-    // Información de autenticación
-    const API_KEY = 'AIzaSyDN5nmVMRWaKTuoElNVSc6a109Z_oztc2U';
-    const CLIENT_ID = '146933011470-1f383sont25h5pkdfgmu7inp81l16350.apps.googleusercontent.com';
-
-    // ID de las hojas de Google Sheets
-    const HERRAMIENTAS_SPREADSHEET_ID = '1OujyykgstqY4-kSI5kOxmzDx1VIgmEU-xUFbnm8MWqs'; // Hoja de Herramientas
-    const REGISTRO_SPREADSHEET_ID = '1EptujHLjprPjlYJCc9ccLt3MYSw4sYkOWAHgIbBOWNw'; // Hoja de Registro
+    // Manejar la respuesta de Google Identity Services
+    function handleCredentialResponse(response) {
+      console.log("ID Token: " + response.credential);
+      alert("Autenticación exitosa");
+    }
 
     // Iniciar la cámara para escanear códigos QR
     function startCamera() {
@@ -138,97 +144,13 @@
       }
     }
 
-    // Cargar el cliente de Google API cuando la página se carga
-    window.onload = function () {
-      gapi.load('client:auth2', initClient);
-    };
-
-    // Inicializar el cliente de la API de Google
-    function initClient() {
-      gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
-        scope: "https://www.googleapis.com/auth/spreadsheets"
-      }).then(function () {
-        alert("Conexión a Google Sheets exitosa");
-        gapi.auth2.getAuthInstance().signIn();
-      }).catch(function (error) {
-        alert('Error inicializando la API de Google: ' + error.details);
-        console.error('Error inicializando la API de Google: ', error);
-      });
-    }
-
-    // Función para buscar el ID en Google Sheets y obtener la herramienta correspondiente
-    function searchToolById(qrData, workerName) {
-      const params = {
-        spreadsheetId: HERRAMIENTAS_SPREADSHEET_ID,
-        range: 'A2:A', // Desde la fila 2, columna A donde se encuentran los IDs
-      };
-
-      gapi.client.sheets.spreadsheets.values.get(params).then((response) => {
-        const rows = response.result.values;
-        if (rows.length) {
-          // Buscar el ID en la columna A
-          const index = rows.findIndex(row => row[0] === qrData);
-
-          if (index !== -1) {
-            alert("ID encontrado en la fila " + (index + 2));
-            const toolParams = {
-              spreadsheetId: HERRAMIENTAS_SPREADSHEET_ID,
-              range: `A${index + 2}:G${index + 2}`, // Obtener la fila completa de la herramienta
-            };
-
-            gapi.client.sheets.spreadsheets.values.get(toolParams).then((toolResponse) => {
-              const toolData = toolResponse.result.values[0];
-              const fechaHora = new Date().toLocaleString();
-              const registro = [toolData[0], toolData[1], workerName, fechaHora];
-
-              // Llamar a la función para agregar el registro en la hoja de Registro
-              appendDataToGoogleSheets(registro);
-            }).catch((error) => {
-              alert('Error al obtener los datos de la herramienta: ' + error.details);
-              console.error('Error al obtener los datos de la herramienta:', error);
-            });
-          } else {
-            alert("No se encontró una herramienta con ese ID.");
-          }
-        } else {
-          alert("No hay datos en la hoja.");
-        }
-      }).catch((error) => {
-        alert('Error al buscar la herramienta en Google Sheets: ' + error.details);
-        console.error('Error al buscar la herramienta en Google Sheets:', error);
-      });
-    }
-
-    // Función para añadir una fila de datos en la hoja de Registro
-    function appendDataToGoogleSheets(data) {
-      const params = {
-        spreadsheetId: REGISTRO_SPREADSHEET_ID,
-        range: 'A1:D1', // Rango en la hoja donde se añadirá la fila
-        valueInputOption: 'RAW',
-      };
-
-      const valueRangeBody = {
-        "values": [data]
-      };
-
-      gapi.client.sheets.spreadsheets.values.append(params, valueRangeBody).then((response) => {
-        alert("Datos registrados correctamente en la hoja de Registro.");
-        console.log(`${response.result.updates.updatedCells} celdas actualizadas.`);
-      }).catch((error) => {
-        alert('Error al registrar los datos en Google Sheets: ' + error.details);
-        console.error('Error al registrar los datos en Google Sheets:', error);
-      });
-    }
-
     // Evento al presionar el botón de búsqueda
     searchButton.addEventListener('click', () => {
       const qrData = qrResult.value;
       const workerName = workerSelect.value;
       if (qrData) {
-        searchToolById(qrData, workerName); // Buscar y registrar la herramienta
+        // Aquí puedes agregar la lógica para buscar en Google Sheets
+        alert('Datos listos para buscar');
       } else {
         alert('No se ha escaneado ningún código QR.');
       }
