@@ -172,6 +172,11 @@
       }
     }
 
+    // Función para buscar el ID (DEFINIR LA FUNCIÓN PARA EVITAR EL ERROR)
+    function searchToolById(qrData, workerName) {
+      alert(`Buscando la herramienta con ID: ${qrData} para el trabajador: ${workerName}`);
+    }
+
     // Evento al presionar el botón de búsqueda
     searchButton.addEventListener('click', () => {
       const qrData = qrResult.value;
