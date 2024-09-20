@@ -52,6 +52,10 @@
       margin-top: 20px;
     }
   </style>
+  <!-- Incluir la biblioteca SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+  <!-- Incluir la biblioteca jsQR para leer códigos QR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
 </head>
 <body>
 
@@ -84,15 +88,12 @@
   <!-- Mensaje de error -->
   <p id="error-message"></p>
 
-  <!-- Incluir la biblioteca SheetJS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
-
   <script>
     let excelData;
 
     // Función para cargar el archivo Excel desde una ruta fija
     function loadExcel() {
-      fetch('Herramientas.xlsx') // Aquí está la ruta al archivo Excel que se encuentra en la misma carpeta que el index.html
+      fetch('Herramientas.xlsx') // Asegúrate de que 'Herramientas.xlsx' esté en la misma carpeta que este archivo HTML
         .then(response => {
           if (!response.ok) {
             throw new Error('Error al cargar el archivo Excel');
@@ -137,6 +138,9 @@
       }
     });
 
+    const video = document.getElementById('video');
+    const errorMessage = document.getElementById('error-message');
+
     function startCamera() {
       console.log('Intentando acceder a la cámara...');
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
@@ -144,6 +148,7 @@
           console.log('Acceso a la cámara exitoso.');
           video.srcObject = stream;
           video.setAttribute("playsinline", true);
+          video.play();
           requestAnimationFrame(scanQRCode);
         })
         .catch((err) => {
