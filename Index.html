@@ -151,9 +151,11 @@
         discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
         scope: "https://www.googleapis.com/auth/spreadsheets"
       }).then(function () {
+        alert("Conexión a Google Sheets exitosa");
         gapi.auth2.getAuthInstance().signIn();
       }).catch(function (error) {
-        console.log('Error inicializando la API de Google: ', error);
+        alert('Error inicializando la API de Google: ' + error.details);
+        console.error('Error inicializando la API de Google: ', error);
       });
     }
 
@@ -171,6 +173,7 @@
           const index = rows.findIndex(row => row[0] === qrData);
 
           if (index !== -1) {
+            alert("ID encontrado en la fila " + (index + 2));
             const toolParams = {
               spreadsheetId: HERRAMIENTAS_SPREADSHEET_ID,
               range: `A${index + 2}:G${index + 2}`, // Obtener la fila completa de la herramienta
@@ -184,8 +187,8 @@
               // Llamar a la función para agregar el registro en la hoja de Registro
               appendDataToGoogleSheets(registro);
             }).catch((error) => {
+              alert('Error al obtener los datos de la herramienta: ' + error.details);
               console.error('Error al obtener los datos de la herramienta:', error);
-              alert("Error al obtener los datos de la herramienta.");
             });
           } else {
             alert("No se encontró una herramienta con ese ID.");
@@ -194,8 +197,8 @@
           alert("No hay datos en la hoja.");
         }
       }).catch((error) => {
+        alert('Error al buscar la herramienta en Google Sheets: ' + error.details);
         console.error('Error al buscar la herramienta en Google Sheets:', error);
-        alert("Error al buscar la herramienta.");
       });
     }
 
@@ -212,11 +215,11 @@
       };
 
       gapi.client.sheets.spreadsheets.values.append(params, valueRangeBody).then((response) => {
+        alert("Datos registrados correctamente en la hoja de Registro.");
         console.log(`${response.result.updates.updatedCells} celdas actualizadas.`);
-        alert("Datos registrados en Google Sheets.");
       }).catch((error) => {
+        alert('Error al registrar los datos en Google Sheets: ' + error.details);
         console.error('Error al registrar los datos en Google Sheets:', error);
-        alert("Error al registrar los datos.");
       });
     }
 
