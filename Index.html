@@ -118,18 +118,11 @@
       }
     }
 
-    // Función para cargar el archivo Excel y buscar los datos
+    // Función para cargar el archivo Excel de forma automática y buscar los datos
     function fetchDataFromExcel(qrData) {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.xlsx';
-      
-      input.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-          const data = new Uint8Array(e.target.result);
+      fetch('Herramientas.xlsx')
+        .then(response => response.arrayBuffer())
+        .then(data => {
           const workbook = XLSX.read(data, { type: 'array' });
 
           // Asumimos que los datos están en la primera hoja
@@ -143,13 +136,11 @@
           } else {
             alert('No se encontraron datos para el código QR escaneado.');
           }
-        };
-
-        reader.readAsArrayBuffer(file);
-      });
-
-      // Simular el click para abrir el selector de archivo
-      input.click();
+        })
+        .catch(error => {
+          console.error('Error al cargar el archivo Excel:', error);
+          alert('Error al cargar el archivo Excel.');
+        });
     }
 
     // Evento al presionar el botón de búsqueda
