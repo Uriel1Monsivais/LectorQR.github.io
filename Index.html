@@ -57,9 +57,6 @@
 
   <h1>Lector de Códigos QR con Excel</h1>
 
-  <!-- Input para cargar el archivo Excel -->
-  <input type="file" id="input-excel" accept=".xlsx" style="margin-bottom: 20px;" />
-
   <!-- Video donde se mostrará la cámara -->
   <video id="video" autoplay playsinline></video>
 
@@ -93,28 +90,29 @@
   <script>
     let excelData;
 
-    // Leer el archivo Excel
-    document.getElementById('input-excel').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
+    // Función para cargar el archivo Excel desde una ruta fija
+    function loadExcel() {
+      fetch('Herramientas.xlsx') // Aquí está la ruta al archivo Excel que se encuentra en la misma carpeta que el index.html
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error al cargar el archivo Excel');
+          }
+          return response.arrayBuffer();
+        })
+        .then(data => {
+          const workbook = XLSX.read(new Uint8Array(data), {type: 'array'});
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          excelData = XLSX.utils.sheet_to_json(sheet, {header: 1});
+          console.log('Datos del Excel cargados:', excelData);
 
-        // Suponiendo que la primera hoja de trabajo es la que tiene los datos
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-
-        // Convertir los datos de la hoja a un JSON
-        excelData = XLSX.utils.sheet_to_json(sheet, {header: 1});
-        console.log('Datos del Excel cargados:', excelData);
-
-        document.getElementById('search-button').disabled = false;  // Habilitar el botón de búsqueda
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
+          document.getElementById('search-button').disabled = false;  // Habilitar el botón de búsqueda
+        })
+        .catch(error => {
+          console.error('Error al cargar el archivo Excel:', error);
+          alert('Error al cargar el archivo Excel. Asegúrate de que el archivo esté en la misma carpeta que el index.html.');
+        });
+    }
 
     // Función de búsqueda en el archivo Excel
     document.getElementById('search-button').addEventListener('click', function() {
@@ -179,7 +177,7 @@
 
     window.onload = function() {
       startCamera();
-      document.getElementById('search-button').disabled = true;
+      loadExcel(); // Cargar el archivo Excel al cargar la página
     };
   </script>
 
