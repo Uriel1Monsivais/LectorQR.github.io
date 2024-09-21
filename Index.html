@@ -292,7 +292,7 @@
         case 'day':
           filteredRegistros = registros.filter(registro => {
             const registroDate = new Date(registro.Fecha);
-            return registroDate.toDateString() === currentDate.toDateString();
+            return registroDate.toISOString().split('T')[0] === currentDate.toISOString().split('T')[0];
           });
           break;
         case 'week':
@@ -384,3 +384,4 @@
 
 </body>
 </html>
+
