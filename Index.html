@@ -68,10 +68,8 @@
     <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
     
     <!-- Botones adicionales -->
-    <button id="search-button">Buscar</button>
-    <button id="report-button">Reporte</button>
-    <button id="download-button">Descargar Excel Actualizado</button>
-
+    <button id="search-button">Buscar y Guardar</button>
+    
     <!-- Mostrar resultado de búsqueda -->
     <p id="tool-info"></p>
   </div>
@@ -84,6 +82,7 @@
     let credenciales = [];
     let herramientas = [];
     let workbook; // Variable para almacenar el workbook en caché
+    let scanning = false; // Variable para controlar el escaneo
 
     // Leer el archivo Excel cuando la página se carga
     window.onload = function() {
@@ -110,6 +109,16 @@
         .catch(error => {
           console.error('Error al leer Herramientas.xlsx:', error);
         });
+
+      // Cargar Registros.xlsx (Archivo de registro donde se almacenan los nuevos datos)
+      fetch('Registros.xlsx')
+        .then(response => response.arrayBuffer())
+        .then(data => {
+          workbook = XLSX.read(data, { type: 'array' });  // Cargar el archivo en caché
+        })
+        .catch(error => {
+          console.error('Error al leer Registros.xlsx:', error);
+        });
     };
 
     // Evento del formulario de login
@@ -135,13 +144,12 @@
     function startCamera() {
       const video = document.getElementById('video');
       const qrResult = document.getElementById('qr-result');
-      let scanning = false;
+      scanning = true;
 
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         .then((stream) => {
           video.srcObject = stream;
           video.setAttribute("playsinline", true); // Para evitar problemas en iOS
-          scanning = true;
           requestAnimationFrame(scanQRCode); // Llamar la función para comenzar a escanear
         })
         .catch((err) => {
@@ -150,7 +158,7 @@
 
       // Escanear el código QR
       function scanQRCode() {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
           const canvas = document.createElement("canvas");
           const context = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -162,8 +170,12 @@
 
           if (qrCode) {
             qrResult.value = qrCode.data;
-            scanning = false;
-            video.srcObject.getTracks().forEach(track => track.stop()); // Detener la cámara
+            scanning = false; // Detener el escaneo
+
+            // Detener el video después de 5 segundos de escaneo
+            setTimeout(() => {
+              video.srcObject.getTracks().forEach(track => track.stop());
+            }, 5000); // 5 segundos de pausa después de la lectura
           }
         }
 
@@ -173,72 +185,53 @@
       }
     }
 
-    // Funcionalidad del botón de búsqueda
+    // Funcionalidad del botón de búsqueda y guardado automático
     document.getElementById('search-button').addEventListener('click', function() {
-      const qrData = document.getElementById('qr-result').value;
-      const toolFound = herramientas.find(row => row.Id == qrData);
-
-      if (toolFound) {
-        document.getElementById('tool-info').textContent = `
-          Herramienta: ${toolFound.Nombre}, 
-          Color: ${toolFound.Color}, 
-          Marca: ${toolFound.Marca}, 
-          Número de herramienta: ${toolFound["Número de herramienta"]}, 
-          Proceso: ${toolFound.Proceso}, 
-          Material: ${toolFound.Material}
-        `;
-      } else {
-        document.getElementById('tool-info').textContent = 'Herramienta no encontrada';
-      }
-    });
-
-    // Funcionalidad del botón de reporte
-    document.getElementById('report-button').addEventListener('click', function() {
       const qrData = document.getElementById('qr-result').value;
       const username = document.getElementById('username').value;
       const date = new Date().toLocaleDateString();
       const time = new Date().toLocaleTimeString();
 
       if (qrData && workbook) {
-        // Añadir el registro al workbook en caché
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const newRow = {
-          Usuario: username,
-          Fecha: date,
-          Hora: time,
-          IdMaquina: qrData,
-          NombreMaquina: 'Machine XYZ' // Puedes modificar el nombre de la máquina según lo necesites
-        };
-        const jsonSheet = XLSX.utils.sheet_to_json(sheet);
-        jsonSheet.push(newRow); // Añadir la nueva fila
 
-        // Actualizar el workbook
-        const newSheet = XLSX.utils.json_to_sheet(jsonSheet);
-        workbook.Sheets[workbook.SheetNames[0]] = newSheet;
+        // Buscar la herramienta en la lista
+        const toolFound = herramientas.find(row => row.Id == qrData);
 
-        alert('Registro añadido correctamente.');
+        if (toolFound) {
+          document.getElementById('tool-info').textContent = `
+            Herramienta: ${toolFound.Nombre}, 
+            Color: ${toolFound.Color}, 
+            Marca: ${toolFound.Marca}, 
+            Número de herramienta: ${toolFound["Número de herramienta"]}, 
+            Proceso: ${toolFound.Proceso}, 
+            Material: ${toolFound.Material}
+          `;
+
+          // Agregar los nuevos datos al archivo de Registros.xlsx en caché
+          const newRow = {
+            Usuario: username,
+            Fecha: date,
+            Hora: time,
+            IdMaquina: qrData,
+            NombreMaquina: toolFound.Nombre
+          };
+          const jsonSheet = XLSX.utils.sheet_to_json(sheet);
+          jsonSheet.push(newRow);  // Añadir la nueva fila
+          const newSheet = XLSX.utils.json_to_sheet(jsonSheet);
+          workbook.Sheets[workbook.SheetNames[0]] = newSheet; // Actualizar la hoja con los nuevos datos
+
+          // Mensaje de éxito
+          alert('Datos guardados correctamente en el archivo de registros.');
+        } else {
+          document.getElementById('tool-info').textContent = 'Herramienta no encontrada';
+        }
       } else {
         alert('No hay un ID de herramienta escaneado o el archivo Excel no está cargado.');
-      }
-    });
-
-    // Funcionalidad del botón de descarga
-    document.getElementById('download-button').addEventListener('click', function() {
-      if (workbook) {
-        const workbookOut = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.download = 'Registros_Actualizados.xlsx';  // Nombre del archivo descargado
-        a.click();  // Disparar la descarga
-
-        // Limpiar la URL para evitar fugas de memoria
-        URL.revokeObjectURL(url);
-      } else {
-        alert('El archivo Excel no está disponible para descargar.');
       }
     });
   </script>
 
 </body>
 </html>
+
