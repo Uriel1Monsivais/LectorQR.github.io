@@ -245,37 +245,38 @@
       }
     });
 
-    // Funcionalidad del botón de reporte para descargar el archivo actualizado
+    // Funcionalidad del botón de reporte para descargar el archivo actualizado y mostrar el selector de reporte
     document.getElementById('download-report-button').addEventListener('click', function() {
       if (registrosWorkbook) {
+        // Convertir el archivo workbook a un binario descargable
+        const workbookOut = XLSX.write(registrosWorkbook, { bookType: 'xlsx', type: 'array' });
+        
+        // Crear un Blob con el contenido del archivo Excel
+        const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
+        
+        // Crear un enlace temporal para desencadenar la descarga
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Updated_Registros_2024.xlsx';  // Nombre del archivo descargado
+        a.click();  // Ejecutar la descarga
+        
+        // Limpiar el objeto URL temporal
+        URL.revokeObjectURL(url);
+
         // Mostrar la opción de seleccionar el rango de tiempo para el reporte
         document.getElementById('report-section').style.display = 'block';
-
-        document.getElementById('generate-report').addEventListener('click', function() {
-          const timeRange = document.getElementById('time-range').value;
-
-          // Convertir el archivo workbook a un binario descargable
-          const workbookOut = XLSX.write(registrosWorkbook, { bookType: 'xlsx', type: 'array' });
-          
-          // Crear un Blob con el contenido del archivo Excel
-          const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
-          
-          // Crear un enlace temporal para desencadenar la descarga
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'Updated_Registros_2024.xlsx';  // Nombre del archivo descargado
-          a.click();  // Ejecutar la descarga
-          
-          // Limpiar el objeto URL temporal
-          URL.revokeObjectURL(url);
-
-          // Generar el reporte según el rango de tiempo seleccionado
-          generateToolReport(timeRange);
-        });
       } else {
         alert('El archivo de registros no está disponible.');
       }
+    });
+
+    // Funcionalidad para generar el reporte según el rango de tiempo seleccionado
+    document.getElementById('generate-report').addEventListener('click', function() {
+      const timeRange = document.getElementById('time-range').value;
+
+      // Generar el reporte según el rango de tiempo seleccionado
+      generateToolReport(timeRange);
     });
 
     // Función para generar el reporte de herramientas más utilizadas
@@ -383,4 +384,3 @@
 
 </body>
 </html>
-
