@@ -84,7 +84,7 @@
     let credenciales = [];
     let herramientas = [];
     let registrosWorkbook; // Variable para el archivo Updated_Registros_2024.xlsx
-    let scanning = false; // Variable para controlar el escaneo
+    let scanning = true; // Mantener el escaneo activo continuamente
 
     // Leer el archivo Excel cuando la página se carga
     window.onload = function() {
@@ -146,8 +146,7 @@
     function startCamera() {
       const video = document.getElementById('video');
       const qrResult = document.getElementById('qr-result');
-      scanning = true;
-
+      
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         .then((stream) => {
           video.srcObject = stream;
@@ -160,7 +159,7 @@
 
       // Escanear el código QR
       function scanQRCode() {
-        if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
           const canvas = document.createElement("canvas");
           const context = canvas.getContext("2d");
           canvas.width = video.videoWidth;
@@ -172,17 +171,14 @@
 
           if (qrCode) {
             qrResult.value = qrCode.data;
-            scanning = false; // Detener el escaneo
 
-            // Detener el video después de 5 segundos de escaneo
-            setTimeout(() => {
-              video.srcObject.getTracks().forEach(track => track.stop());
-            }, 5000); // 5 segundos de pausa después de la lectura
+            // Después de leer el código, seguir escaneando
+            scanning = true;  // Permitir el escaneo continuo sin detenerse
           }
         }
 
         if (scanning) {
-          requestAnimationFrame(scanQRCode);
+          requestAnimationFrame(scanQRCode);  // Continuar escaneando
         }
       }
     }
@@ -212,7 +208,7 @@
 
           // Crear un nuevo registro respetando las columnas del archivo
           const newRow = {
-            'Id_Maquina': qrData,  // ID de la máquina
+            'Id_Maquina': Number(qrData),  // Convertir el ID a número
             'Nombre_de_la_Maquina': toolFound.Nombre,  // Nombre de la máquina
             'Fecha': date,  // Fecha actual
             'horas': time,  // Hora actual
@@ -282,3 +278,4 @@
 
 </body>
 </html>
+
