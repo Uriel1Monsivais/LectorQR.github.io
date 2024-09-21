@@ -69,9 +69,8 @@
     
     <!-- Botones adicionales -->
     <button id="search-button">Buscar y Guardar</button>
-    <!-- Botón de Reporte para descargar el registro actualizado -->
-<button id="download-report-button">Descargar Registro Actualizado</button>
-
+    <button id="download-report-button">Descargar Registro Actualizado</button>
+    <button id="logout-button">Cerrar Sesión</button> <!-- Nuevo botón de Cerrar Sesión -->
     
     <!-- Mostrar resultado de búsqueda -->
     <p id="tool-info"></p>
@@ -234,31 +233,49 @@
       }
     });
 
-
-
-
     // Funcionalidad del botón de reporte para descargar el archivo actualizado
-document.getElementById('download-report-button').addEventListener('click', function() {
-  if (workbook) {
-    // Convertir el archivo workbook a un binario descargable
-    const workbookOut = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    
-    // Crear un Blob con el contenido del archivo Excel
-    const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
-    
-    // Crear un enlace temporal para desencadenar la descarga
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Registros_Actualizados.xlsx';  // Nombre del archivo descargado
-    a.click();  // Ejecutar la descarga
-    
-    // Limpiar el objeto URL temporal
-    URL.revokeObjectURL(url);
-  } else {
-    alert('El archivo de registros no está disponible.');
-  }
-});
+    document.getElementById('download-report-button').addEventListener('click', function() {
+      if (workbook) {
+        // Convertir el archivo workbook a un binario descargable
+        const workbookOut = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        
+        // Crear un Blob con el contenido del archivo Excel
+        const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
+        
+        // Crear un enlace temporal para desencadenar la descarga
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Registros_Actualizados.xlsx';  // Nombre del archivo descargado
+        a.click();  // Ejecutar la descarga
+        
+        // Limpiar el objeto URL temporal
+        URL.revokeObjectURL(url);
+      } else {
+        alert('El archivo de registros no está disponible.');
+      }
+    });
+
+    // Funcionalidad del botón de "Cerrar Sesión"
+    document.getElementById('logout-button').addEventListener('click', function() {
+      // Restaurar la interfaz de inicio de sesión
+      document.getElementById('login-form').style.display = 'block'; // Mostrar el formulario de login
+      document.getElementById('qr-reader').style.display = 'none';  // Ocultar el lector de QR
+      
+      // Detener la cámara si está activa
+      const video = document.getElementById('video');
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());  // Detener la cámara
+      }
+
+      // Limpiar los campos
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+      document.getElementById('qr-result').value = '';
+      document.getElementById('tool-info').textContent = '';
+
+      alert('Has cerrado sesión.');
+    });
 
   </script>
 
