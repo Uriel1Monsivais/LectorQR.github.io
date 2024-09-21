@@ -45,6 +45,10 @@
       border: 1px solid black;
       margin: 20px 0;
     }
+    #report-section {
+      margin-top: 20px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -76,9 +80,23 @@
     <p id="tool-info"></p>
   </div>
 
-  <!-- Importar la librería XLSX -->
+  <!-- Sección para seleccionar el reporte -->
+  <div id="report-section">
+    <h2>Generar reporte</h2>
+    <label for="time-range">Selecciona un rango de tiempo:</label>
+    <select id="time-range">
+      <option value="day">Día</option>
+      <option value="week">Semana</option>
+      <option value="month">Mes</option>
+      <option value="year">Año</option>
+    </select>
+    <button id="generate-report">Generar reporte</button>
+  </div>
+
+  <!-- Importar la librería XLSX y Chart.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
     let credenciales = [];
@@ -171,9 +189,6 @@
 
           if (qrCode) {
             qrResult.value = qrCode.data;
-
-            // Después de leer el código, seguir escaneando
-            scanning = true;  // Permitir el escaneo continuo sin detenerse
           }
         }
 
@@ -187,7 +202,7 @@
     document.getElementById('search-button').addEventListener('click', function() {
       const qrData = document.getElementById('qr-result').value;
       const username = document.getElementById('username').value;
-      const date = new Date().toLocaleDateString();
+      const date = new Date().toISOString().split('T')[0];  // Formato yyyy-mm-dd
       const time = new Date().toLocaleTimeString();
 
       if (qrData && registrosWorkbook) {
@@ -210,11 +225,11 @@
           const newRow = {
             'Id_Maquina': Number(qrData),  // Convertir el ID a número
             'Nombre_de_la_Maquina': toolFound.Nombre,  // Nombre de la máquina
-            'Fecha': date,  // Fecha actual
+            'Fecha': date,  // Fecha con formato yyyy-mm-dd
             'horas': time,  // Hora actual
             'Nombre_Del_Trabajador': username  // Nombre del usuario
           };
-          
+
           const jsonSheet = XLSX.utils.sheet_to_json(sheet);
           jsonSheet.push(newRow);  // Añadir la nueva fila respetando las columnas existentes
           const newSheet = XLSX.utils.json_to_sheet(jsonSheet);
@@ -233,25 +248,115 @@
     // Funcionalidad del botón de reporte para descargar el archivo actualizado
     document.getElementById('download-report-button').addEventListener('click', function() {
       if (registrosWorkbook) {
-        // Convertir el archivo workbook a un binario descargable
-        const workbookOut = XLSX.write(registrosWorkbook, { bookType: 'xlsx', type: 'array' });
-        
-        // Crear un Blob con el contenido del archivo Excel
-        const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
-        
-        // Crear un enlace temporal para desencadenar la descarga
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'Updated_Registros_2024.xlsx';  // Nombre del archivo descargado
-        a.click();  // Ejecutar la descarga
-        
-        // Limpiar el objeto URL temporal
-        URL.revokeObjectURL(url);
+        // Mostrar la opción de seleccionar el rango de tiempo para el reporte
+        document.getElementById('report-section').style.display = 'block';
+
+        document.getElementById('generate-report').addEventListener('click', function() {
+          const timeRange = document.getElementById('time-range').value;
+
+          // Convertir el archivo workbook a un binario descargable
+          const workbookOut = XLSX.write(registrosWorkbook, { bookType: 'xlsx', type: 'array' });
+          
+          // Crear un Blob con el contenido del archivo Excel
+          const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
+          
+          // Crear un enlace temporal para desencadenar la descarga
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'Updated_Registros_2024.xlsx';  // Nombre del archivo descargado
+          a.click();  // Ejecutar la descarga
+          
+          // Limpiar el objeto URL temporal
+          URL.revokeObjectURL(url);
+
+          // Generar el reporte según el rango de tiempo seleccionado
+          generateToolReport(timeRange);
+        });
       } else {
         alert('El archivo de registros no está disponible.');
       }
     });
+
+    // Función para generar el reporte de herramientas más utilizadas
+    function generateToolReport(timeRange) {
+      const sheet = registrosWorkbook.Sheets[registrosWorkbook.SheetNames[0]];
+      const registros = XLSX.utils.sheet_to_json(sheet);
+
+      let filteredRegistros = [];
+      const currentDate = new Date();
+
+      // Filtrar los registros según el rango de tiempo seleccionado
+      switch (timeRange) {
+        case 'day':
+          filteredRegistros = registros.filter(registro => {
+            const registroDate = new Date(registro.Fecha);
+            return registroDate.toDateString() === currentDate.toDateString();
+          });
+          break;
+        case 'week':
+          const weekAgo = new Date(currentDate);
+          weekAgo.setDate(currentDate.getDate() - 7);
+          filteredRegistros = registros.filter(registro => {
+            const registroDate = new Date(registro.Fecha);
+            return registroDate >= weekAgo && registroDate <= currentDate;
+          });
+          break;
+        case 'month':
+          const monthAgo = new Date(currentDate);
+          monthAgo.setMonth(currentDate.getMonth() - 1);
+          filteredRegistros = registros.filter(registro => {
+            const registroDate = new Date(registro.Fecha);
+            return registroDate >= monthAgo && registroDate <= currentDate;
+          });
+          break;
+        case 'year':
+          const yearAgo = new Date(currentDate);
+          yearAgo.setFullYear(currentDate.getFullYear() - 1);
+          filteredRegistros = registros.filter(registro => {
+            const registroDate = new Date(registro.Fecha);
+            return registroDate >= yearAgo && registroDate <= currentDate;
+          });
+          break;
+      }
+
+      // Contar cuántas veces se utilizó cada herramienta
+      const toolUsage = {};
+      filteredRegistros.forEach(registro => {
+        const toolName = registro.Nombre_de_la_Maquina;
+        if (toolUsage[toolName]) {
+          toolUsage[toolName]++;
+        } else {
+          toolUsage[toolName] = 1;
+        }
+      });
+
+      // Preparar los datos para la gráfica de pastel
+      const labels = Object.keys(toolUsage);
+      const data = Object.values(toolUsage);
+
+      // Crear el gráfico de pastel usando Chart.js
+      const ctx = document.createElement('canvas');
+      document.body.appendChild(ctx);
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Uso de herramientas',
+            data: data,
+            backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56'], // Colores aleatorios
+          }]
+        },
+        options: {
+          responsive: true,
+          title: {
+            display: true,
+            text: 'Reporte de uso de herramientas más utilizadas'
+          }
+        }
+      });
+    }
 
     // Funcionalidad del botón de "Cerrar Sesión"
     document.getElementById('logout-button').addEventListener('click', function() {
