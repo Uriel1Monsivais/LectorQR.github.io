@@ -84,6 +84,7 @@
     let credenciales = [];
     let herramientas = [];
     let workbook; // Variable para almacenar el workbook en caché
+    let registrosWorkbook; // Variable para el archivo Updated_Registros_2024.xlsx
     let scanning = false; // Variable para controlar el escaneo
 
     // Leer el archivo Excel cuando la página se carga
@@ -104,22 +105,22 @@
       fetch('Herramientas.xlsx')
         .then(response => response.arrayBuffer())
         .then(data => {
-          workbook = XLSX.read(data, { type: 'array' });  // Cargar el archivo en caché
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const herramientasWorkbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = herramientasWorkbook.Sheets[herramientasWorkbook.SheetNames[0]];
           herramientas = XLSX.utils.sheet_to_json(firstSheet);
         })
         .catch(error => {
           console.error('Error al leer Herramientas.xlsx:', error);
         });
 
-      // Cargar Registros.xlsx (Archivo de registro donde se almacenan los nuevos datos)
-      fetch('Registros.xlsx')
+      // Cargar Updated_Registros_2024.xlsx (Archivo de registro donde se almacenan los nuevos datos)
+      fetch('Updated_Registros_2024.xlsx')
         .then(response => response.arrayBuffer())
         .then(data => {
-          workbook = XLSX.read(data, { type: 'array' });  // Cargar el archivo en caché
+          registrosWorkbook = XLSX.read(data, { type: 'array' });  // Cargar el archivo de registros en caché
         })
         .catch(error => {
-          console.error('Error al leer Registros.xlsx:', error);
+          console.error('Error al leer Updated_Registros_2024.xlsx:', error);
         });
     };
 
@@ -194,8 +195,8 @@
       const date = new Date().toLocaleDateString();
       const time = new Date().toLocaleTimeString();
 
-      if (qrData && workbook) {
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (qrData && registrosWorkbook) {
+        const sheet = registrosWorkbook.Sheets[registrosWorkbook.SheetNames[0]];
 
         // Buscar la herramienta en la lista
         const toolFound = herramientas.find(row => row.Id == qrData);
@@ -210,7 +211,7 @@
             Material: ${toolFound.Material}
           `;
 
-          // Agregar los nuevos datos al archivo de Registros.xlsx en caché
+          // Agregar los nuevos datos al archivo de Updated_Registros_2024.xlsx en caché
           const newRow = {
             Usuario: username,
             Fecha: date,
@@ -221,7 +222,7 @@
           const jsonSheet = XLSX.utils.sheet_to_json(sheet);
           jsonSheet.push(newRow);  // Añadir la nueva fila
           const newSheet = XLSX.utils.json_to_sheet(jsonSheet);
-          workbook.Sheets[workbook.SheetNames[0]] = newSheet; // Actualizar la hoja con los nuevos datos
+          registrosWorkbook.Sheets[registrosWorkbook.SheetNames[0]] = newSheet; // Actualizar la hoja con los nuevos datos
 
           // Mensaje de éxito
           alert('Datos guardados correctamente en el archivo de registros.');
@@ -235,9 +236,9 @@
 
     // Funcionalidad del botón de reporte para descargar el archivo actualizado
     document.getElementById('download-report-button').addEventListener('click', function() {
-      if (workbook) {
+      if (registrosWorkbook) {
         // Convertir el archivo workbook a un binario descargable
-        const workbookOut = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const workbookOut = XLSX.write(registrosWorkbook, { bookType: 'xlsx', type: 'array' });
         
         // Crear un Blob con el contenido del archivo Excel
         const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
@@ -246,7 +247,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'Registros_Actualizados.xlsx';  // Nombre del archivo descargado
+        a.download = 'Updated_Registros_2024.xlsx';  // Nombre del archivo descargado
         a.click();  // Ejecutar la descarga
         
         // Limpiar el objeto URL temporal
