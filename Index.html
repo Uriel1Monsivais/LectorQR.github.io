@@ -103,6 +103,7 @@
     let herramientas = [];
     let registrosWorkbook; // Variable para el archivo Updated_Registros_2024.xlsx
     let scanning = true; // Mantener el escaneo activo continuamente
+    let chartInstance = null; // Variable para almacenar la instancia del gráfico
 
     // Leer el archivo Excel cuando la página se carga
     window.onload = function() {
@@ -339,7 +340,12 @@
       // Crear el gráfico de pastel usando Chart.js
       const ctx = document.createElement('canvas');
       document.body.appendChild(ctx);
-      new Chart(ctx, {
+
+      if (chartInstance) {
+        chartInstance.destroy();  // Destruir la gráfica anterior si ya existe
+      }
+
+      chartInstance = new Chart(ctx, {
         type: 'pie',
         data: {
           labels: labels,
@@ -376,6 +382,17 @@
       document.getElementById('password').value = '';
       document.getElementById('qr-result').value = '';
       document.getElementById('tool-info').textContent = '';
+
+      // Eliminar las gráficas creadas
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        canvas.remove();  // Remover la gráfica de pastel del DOM
+      }
+
+      if (chartInstance) {
+        chartInstance.destroy();  // Destruir la instancia del gráfico
+        chartInstance = null;  // Resetear la variable
+      }
 
       alert('Has cerrado sesión.');
     });
