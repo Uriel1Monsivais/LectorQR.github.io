@@ -68,31 +68,26 @@
     <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
   </div>
 
-  <input type="file" id="file-input" accept=".xlsx" style="display:none;">
-  <label for="file-input" style="cursor: pointer; color: blue;">Cargar archivo de credenciales</label>
-
+  <!-- Importar la librería XLSX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
   <script>
     let credenciales = [];
 
-    // Leer el archivo Excel
-    document.getElementById('file-input').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-
-        // Leer la primera hoja
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        credenciales = XLSX.utils.sheet_to_json(firstSheet);
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
+    // Leer el archivo Excel cuando la página se carga
+    window.onload = function() {
+      fetch('Credenciales.xlsx')
+        .then(response => response.arrayBuffer())
+        .then(data => {
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          credenciales = XLSX.utils.sheet_to_json(firstSheet);
+        })
+        .catch(error => {
+          console.error('Error al leer el archivo Excel:', error);
+        });
+    };
 
     // Evento del formulario de login
     document.getElementById('form').addEventListener('submit', function(e) {
