@@ -70,7 +70,8 @@
     <!-- Botones adicionales -->
     <button id="search-button">Buscar</button>
     <button id="report-button">Reporte</button>
-    
+    <button id="download-button">Descargar Excel Actualizado</button>
+
     <!-- Mostrar resultado de búsqueda -->
     <p id="tool-info"></p>
   </div>
@@ -82,6 +83,7 @@
   <script>
     let credenciales = [];
     let herramientas = [];
+    let workbook; // Variable para almacenar el workbook en caché
 
     // Leer el archivo Excel cuando la página se carga
     window.onload = function() {
@@ -89,8 +91,8 @@
       fetch('Credenciales.xlsx')
         .then(response => response.arrayBuffer())
         .then(data => {
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const credencialWorkbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = credencialWorkbook.Sheets[credencialWorkbook.SheetNames[0]];
           credenciales = XLSX.utils.sheet_to_json(firstSheet);
         })
         .catch(error => {
@@ -101,7 +103,7 @@
       fetch('Herramientas.xlsx')
         .then(response => response.arrayBuffer())
         .then(data => {
-          const workbook = XLSX.read(data, { type: 'array' });
+          workbook = XLSX.read(data, { type: 'array' });  // Cargar el archivo en caché
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
           herramientas = XLSX.utils.sheet_to_json(firstSheet);
         })
@@ -193,11 +195,47 @@
     // Funcionalidad del botón de reporte
     document.getElementById('report-button').addEventListener('click', function() {
       const qrData = document.getElementById('qr-result').value;
-      if (qrData) {
-        alert(`Generando reporte para la herramienta con ID: ${qrData}`);
-        // Aquí puedes agregar la lógica para generar un reporte
+      const username = document.getElementById('username').value;
+      const date = new Date().toLocaleDateString();
+      const time = new Date().toLocaleTimeString();
+
+      if (qrData && workbook) {
+        // Añadir el registro al workbook en caché
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const newRow = {
+          Usuario: username,
+          Fecha: date,
+          Hora: time,
+          IdMaquina: qrData,
+          NombreMaquina: 'Machine XYZ' // Puedes modificar el nombre de la máquina según lo necesites
+        };
+        const jsonSheet = XLSX.utils.sheet_to_json(sheet);
+        jsonSheet.push(newRow); // Añadir la nueva fila
+
+        // Actualizar el workbook
+        const newSheet = XLSX.utils.json_to_sheet(jsonSheet);
+        workbook.Sheets[workbook.SheetNames[0]] = newSheet;
+
+        alert('Registro añadido correctamente.');
       } else {
-        alert('No hay un ID de herramienta escaneado.');
+        alert('No hay un ID de herramienta escaneado o el archivo Excel no está cargado.');
+      }
+    });
+
+    // Funcionalidad del botón de descarga
+    document.getElementById('download-button').addEventListener('click', function() {
+      if (workbook) {
+        const workbookOut = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([workbookOut], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = 'Registros_Actualizados.xlsx';  // Nombre del archivo descargado
+        a.click();  // Disparar la descarga
+
+        // Limpiar la URL para evitar fugas de memoria
+        URL.revokeObjectURL(url);
+      } else {
+        alert('El archivo Excel no está disponible para descargar.');
       }
     });
   </script>
