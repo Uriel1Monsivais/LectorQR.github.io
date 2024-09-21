@@ -3,154 +3,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lector de Códigos QR</title>
+  <title>Inicio de Sesión - Lector de Códigos QR</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
     }
-    #video {
-      width: 100%;
+    #login-form, #qr-reader {
       max-width: 400px;
-      margin: 20px auto;
-      border: 1px solid black;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
     }
-    #qr-result {
-      margin-top: 20px;
-      font-size: 18px;
-      color: green;
+    input[type="text"], input[type="password"], input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
-    #start-button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
+    input[type="submit"] {
       background-color: #4CAF50;
       color: white;
-      border: none;
       cursor: pointer;
-      border-radius: 5px;
     }
-    #start-button:hover {
+    input[type="submit"]:hover {
       background-color: #45a049;
     }
-    #report-button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #2196F3;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
+    #error-message {
+      color: red;
+      margin-top: 10px;
     }
-    #report-button:hover {
-      background-color: #0b7dda;
+    #qr-reader {
+      display: none;
+    }
+    video {
+      width: 100%;
+      border: 1px solid black;
+      margin: 20px 0;
     }
   </style>
 </head>
 <body>
 
-  <h1>Lector de Códigos QR</h1>
+  <h1>Inicio de Sesión</h1>
 
-  <!-- Video donde se mostrará la cámara -->
-  <video id="video" autoplay playsinline></video>
+  <!-- Formulario de Inicio de Sesión -->
+  <div id="login-form">
+    <form id="form">
+      <input type="text" id="username" placeholder="Usuario" required>
+      <input type="password" id="password" placeholder="Contraseña" required>
+      <input type="submit" value="Iniciar sesión">
+    </form>
+    <p id="error-message"></p>
+  </div>
 
-  <!-- Selección de trabajador -->
-  <label for="worker-select">Seleccione un trabajador:</label>
-  <select id="worker-select">
-    <option value="Trabajador 1">Trabajador 1</option>
-    <option value="Trabajador 2">Trabajador 2</option>
-    <option value="Trabajador 3">Trabajador 3</option>
-    <option value="Trabajador 4">Trabajador 4</option>
-    <option value="Trabajador 5">Trabajador 5</option>
-  </select>
-
-  <!-- Campo de texto donde se mostrará el resultado del QR -->
-  <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
-
-  <!-- Botón de búsqueda -->
-  <button id="search-button">Buscar</button>
-
-  <p id="error-message" style="color: red;"></p>
-  
-  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <!-- Escaneo de QR después de iniciar sesión -->
+  <div id="qr-reader">
+    <h1>Lector de Códigos QR</h1>
+    <video id="video" autoplay playsinline></video>
+    <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
+  </div>
 
   <script>
-    const video = document.getElementById('video');
-    const qrResult = document.getElementById('qr-result');
-    const workerSelect = document.getElementById('worker-select');
-    const searchButton = document.getElementById('search-button');
-    let scanning = false;
+    // Evento del formulario de login
+    document.getElementById('form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      // Enviar las credenciales al backend (simulando una llamada de verificación)
+      fetch('/verificar-credenciales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('login-form').style.display = 'none'; // Ocultar el login
+          document.getElementById('qr-reader').style.display = 'block'; // Mostrar el lector de QR
+          startCamera();  // Iniciar la cámara para escanear
+        } else {
+          document.getElementById('error-message').textContent = data.message;
+        }
+      })
+      .catch(error => {
+        document.getElementById('error-message').textContent = "Error al verificar credenciales.";
+      });
+    });
 
     // Iniciar la cámara para escanear códigos QR
     function startCamera() {
+      const video = document.getElementById('video');
+      const qrResult = document.getElementById('qr-result');
+      let scanning = false;
+
       navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         .then((stream) => {
           video.srcObject = stream;
           video.setAttribute("playsinline", true); // Para evitar problemas en iOS
           scanning = true;
-          console.log("Cámara iniciada correctamente");
           requestAnimationFrame(scanQRCode); // Llamar la función para comenzar a escanear
         })
         .catch((err) => {
           alert("Error al acceder a la cámara: " + err.message);
-          console.error("Error al acceder a la cámara: ", err);
         });
-    }
 
-    // Escanear el código QR desde el video
-    function scanQRCode() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // Escanear el código QR
+      function scanQRCode() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
 
-        if (qrCode) {
-          qrResult.value = qrCode.data; // Mostrar el resultado en el input
-          scanning = false;
-          video.srcObject.getTracks().forEach(track => track.stop()); // Detener la cámara
-          alert("QR escaneado correctamente: " + qrCode.data);
+          if (qrCode) {
+            qrResult.value = qrCode.data;
+            scanning = false;
+            video.srcObject.getTracks().forEach(track => track.stop()); // Detener la cámara
+          }
+        }
 
-          // Esperar 5 segundos y luego reiniciar la cámara
-          setTimeout(() => {
-            startCamera(); // Reiniciar la cámara después de 5 segundos
-          }, 5000);
-          return; // No continuar escaneando
+        if (scanning) {
+          requestAnimationFrame(scanQRCode);
         }
       }
-
-      if (scanning) {
-        requestAnimationFrame(scanQRCode); // Continuar escaneando si no se ha encontrado un QR
-      }
     }
-
-    // Función para buscar el ID
-    function searchToolById(qrData, workerName) {
-      alert(`Buscando la herramienta con ID: ${qrData} para el trabajador: ${workerName}`);
-    }
-
-    // Evento al presionar el botón de búsqueda
-    searchButton.addEventListener('click', () => {
-      const qrData = qrResult.value;
-      const workerName = workerSelect.value;
-      if (qrData) {
-        alert("Buscando ID...");
-        searchToolById(qrData, workerName); // Buscar y registrar la herramienta
-      } else {
-        alert('No se ha escaneado ningún código QR.');
-      }
-    });
-
-    // Iniciar la cámara cuando se carga la página
-    window.addEventListener('load', () => {
-      startCamera();
-    });
   </script>
 
 </body>
