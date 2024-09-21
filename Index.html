@@ -70,7 +70,7 @@
     <!-- Botones adicionales -->
     <button id="search-button">Buscar y Guardar</button>
     <button id="download-report-button">Descargar Registro Actualizado</button>
-    <button id="logout-button">Cerrar Sesión</button> <!-- Nuevo botón de Cerrar Sesión -->
+    <button id="logout-button">Cerrar Sesión</button>
     
     <!-- Mostrar resultado de búsqueda -->
     <p id="tool-info"></p>
@@ -83,7 +83,6 @@
   <script>
     let credenciales = [];
     let herramientas = [];
-    let workbook; // Variable para almacenar el workbook en caché
     let registrosWorkbook; // Variable para el archivo Updated_Registros_2024.xlsx
     let scanning = false; // Variable para controlar el escaneo
 
@@ -211,16 +210,17 @@
             Material: ${toolFound.Material}
           `;
 
-          // Agregar los nuevos datos al archivo de Updated_Registros_2024.xlsx en caché
+          // Crear un nuevo registro respetando las columnas del archivo
           const newRow = {
-            Usuario: username,
-            Fecha: date,
-            Hora: time,
-            IdMaquina: qrData,
-            NombreMaquina: toolFound.Nombre
+            'Id_Maquina': qrData,  // ID de la máquina
+            'Nombre_de_la_Maquina': toolFound.Nombre,  // Nombre de la máquina
+            'Fecha': date,  // Fecha actual
+            'horas': time,  // Hora actual
+            'Nombre_Del_Trabajador': username  // Nombre del usuario
           };
+          
           const jsonSheet = XLSX.utils.sheet_to_json(sheet);
-          jsonSheet.push(newRow);  // Añadir la nueva fila
+          jsonSheet.push(newRow);  // Añadir la nueva fila respetando las columnas existentes
           const newSheet = XLSX.utils.json_to_sheet(jsonSheet);
           registrosWorkbook.Sheets[registrosWorkbook.SheetNames[0]] = newSheet; // Actualizar la hoja con los nuevos datos
 
@@ -282,4 +282,3 @@
 
 </body>
 </html>
-
