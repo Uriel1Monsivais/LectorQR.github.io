@@ -68,35 +68,49 @@
     <input type="text" id="qr-result" readonly placeholder="Resultado del Código QR" />
   </div>
 
+  <input type="file" id="file-input" accept=".xlsx" style="display:none;">
+  <label for="file-input" style="cursor: pointer; color: blue;">Cargar archivo de credenciales</label>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+
   <script>
+    let credenciales = [];
+
+    // Leer el archivo Excel
+    document.getElementById('file-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        // Leer la primera hoja
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        credenciales = XLSX.utils.sheet_to_json(firstSheet);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
     // Evento del formulario de login
     document.getElementById('form').addEventListener('submit', function(e) {
       e.preventDefault();
-      
+
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
-      // Enviar las credenciales al backend (simulando una llamada de verificación)
-      fetch('/verificar-credenciales', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById('login-form').style.display = 'none'; // Ocultar el login
-          document.getElementById('qr-reader').style.display = 'block'; // Mostrar el lector de QR
-          startCamera();  // Iniciar la cámara para escanear
-        } else {
-          document.getElementById('error-message').textContent = data.message;
-        }
-      })
-      .catch(error => {
-        document.getElementById('error-message').textContent = "Error al verificar credenciales.";
-      });
+      // Verificar las credenciales con el archivo Excel cargado
+      const userFound = credenciales.find(row => row.Usuario === username && row.Contraseña == password);
+
+      if (userFound) {
+        document.getElementById('login-form').style.display = 'none'; // Ocultar el login
+        document.getElementById('qr-reader').style.display = 'block'; // Mostrar el lector de QR
+        startCamera();  // Iniciar la cámara para escanear
+      } else {
+        document.getElementById('error-message').textContent = "Usuario o contraseña incorrectos";
+      }
     });
 
     // Iniciar la cámara para escanear códigos QR
